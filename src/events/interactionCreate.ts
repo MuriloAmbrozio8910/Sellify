@@ -471,7 +471,7 @@ async function handleCatalogProductClick(interaction: ButtonInteraction) {
       `**💰 Valor:** ${formatCurrency(product.price)}\n\n` +
       `**Escolha o método de pagamento:**`
     )
-    .setThumbnail(product.image_url || undefined)
+    .setThumbnail(product.image_url ?? null)
     .setTimestamp();
 
   const paymentRow = new ActionRowBuilder<ButtonBuilder>()

@@ -70,6 +70,8 @@ export interface GuildConfig {
   guild_id: string;
   sales_category_id?: string; // Categoria para canais de vendas
   log_channel_id?: string; // Canal de logs
+  catalog_channel_id?: string; // Canal do catálogo permanente
+  catalog_message_id?: string; // ID da mensagem do catálogo
   admin_role_id?: string; // Role de admin
   embed_color: string; // Cor dos embeds
   welcome_message?: string;

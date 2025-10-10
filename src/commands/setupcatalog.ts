@@ -65,7 +65,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         '3. Escolha o método de pagamento\n' +
         '4. Receba seu produto automaticamente!'
       )
-      .setThumbnail(interaction.guild?.iconURL() || undefined)
+      .setThumbnail(interaction.guild?.iconURL() ?? null)
       .setFooter({ text: `${products.length} produto(s) disponível(is)` })
       .setTimestamp();
 
