@@ -11,8 +11,9 @@ config();
 
 const commands: any[] = [];
 const commandsPath = join(__dirname, 'commands');
+const fileExtension = process.env.NODE_ENV === 'production' ? '.js' : '.ts';
 const commandFiles = readdirSync(commandsPath).filter(file => 
-  file.endsWith('.ts') || file.endsWith('.js')
+  file.endsWith(fileExtension)
 );
 
 // Carregar comandos
