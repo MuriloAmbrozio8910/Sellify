@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS guild_configs (
     guild_id TEXT PRIMARY KEY,
     sales_category_id TEXT,
     log_channel_id TEXT,
+    catalog_channel_id TEXT,
+    catalog_message_id TEXT,
     admin_role_id TEXT,
     embed_color TEXT DEFAULT '#5865F2',
     welcome_message TEXT,

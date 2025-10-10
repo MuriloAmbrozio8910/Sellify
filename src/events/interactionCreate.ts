@@ -549,11 +549,15 @@ async function handlePayWithPix(interaction: ButtonInteraction) {
 
     // Gerar PIX usando Mercado Pago
     const { createMercadoPagoPix } = await import('../utils/payments');
+    // Gerar email válido a partir do username Discord
+    const cleanUsername = interaction.user.username.replace(/[^a-z0-9]/gi, '').toLowerCase() || 'user';
+    const userEmail = `${cleanUsername}.${interaction.user.id.slice(-6)}@discord.temp`;
+    
     const pixData = await createMercadoPagoPix(
       product,
       interaction.user.id,
       transaction.id,
-      `${interaction.user.id}@discord.user`
+      userEmail
     );
 
     // Gerar QR Code a partir do código PIX
