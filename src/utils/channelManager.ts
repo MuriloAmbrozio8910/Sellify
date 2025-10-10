@@ -193,3 +193,63 @@ export async function addChannelPermission(
     throw error;
   }
 }
+
+/**
+ * Cria canal privado de compra (ticket) - antes do pagamento
+ */
+export async function createPurchaseTicketChannel(
+  guild: Guild,
+  userId: string,
+  productName: string,
+  categoryId?: string
+): Promise<TextChannel> {
+  try {
+    const timestamp = Date.now().toString(36).slice(-6);
+    const channelName = `🛒・${productName.toLowerCase().replace(/\s+/g, '-').substring(0, 20)}-${timestamp}`;
+
+    const channel = await guild.channels.create({
+      name: channelName,
+      type: ChannelType.GuildText,
+      parent: categoryId || null,
+      permissionOverwrites: [
+        {
+          id: guild.id,
+          deny: [PermissionFlagsBits.ViewChannel]
+        },
+        {
+          id: userId,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.AttachFiles,
+            PermissionFlagsBits.EmbedLinks
+          ]
+        }
+      ]
+    });
+
+    console.log(`✅ Canal de compra criado: ${channelName}`);
+    return channel;
+  } catch (error) {
+    console.error('Erro ao criar canal de compra:', error);
+    throw error;
+  }
+}
+
+/**
+ * Deleta canal após um tempo (em ms)
+ */
+export async function deleteChannelAfterDelay(
+  channel: TextChannel,
+  delayMs: number = 300000 // 5 minutos padrão
+): Promise<void> {
+  setTimeout(async () => {
+    try {
+      await channel.delete();
+      console.log(`✅ Canal ${channel.name} deletado automaticamente`);
+    } catch (error) {
+      console.error(`Erro ao deletar canal ${channel.name}:`, error);
+    }
+  }, delayMs);
+}

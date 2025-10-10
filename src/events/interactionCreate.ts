@@ -100,8 +100,16 @@ async function handleButton(interaction: ButtonInteraction) {
       await handleCatalogNavigation(interaction);
     }
     // Refresh do catálogo
-    else if (customId === 'catalog_refresh') {
+    else if (customId === 'catalog_refresh' || customId === 'catalog_refresh_permanent') {
       await handleCatalogRefresh(interaction);
+    }
+    // Produto do catálogo permanente
+    else if (customId.startsWith('catalog_product_')) {
+      await handleCatalogProductClick(interaction);
+    }
+    // Categoria do catálogo
+    else if (customId.startsWith('catalog_category_')) {
+      await handleCatalogCategoryClick(interaction);
     }
     // Comprar produto
     else if (customId.startsWith('buy_product_')) {
@@ -110,6 +118,14 @@ async function handleButton(interaction: ButtonInteraction) {
     // Confirmar compra
     else if (customId.startsWith('confirm_buy_')) {
       await handleConfirmBuy(interaction);
+    }
+    // Pagar com PIX
+    else if (customId.startsWith('pay_pix_')) {
+      await handlePayWithPix(interaction);
+    }
+    // Pagar com Boleto
+    else if (customId.startsWith('pay_boleto_')) {
+      await handlePayWithBoleto(interaction);
     }
     // Cancelar compra
     else if (customId.startsWith('cancel_buy_')) {
@@ -411,4 +427,261 @@ async function handleManualPayment(interaction: ButtonInteraction) {
 
 async function handlePaymentMethodSelection(interaction: StringSelectMenuInteraction) {
   // Implementar seleção de método de pagamento se necessário
+}
+
+/**
+ * Handlers para catálogo permanente
+ */
+async function handleCatalogProductClick(interaction: ButtonInteraction) {
+  const productId = interaction.customId.replace('catalog_product_', '');
+  
+  await interaction.deferReply({ ephemeral: true });
+
+  const product = await getProductById(productId);
+  if (!product) {
+    await interaction.editReply('❌ Produto não encontrado.');
+    return;
+  }
+
+  // Verificar estoque
+  if (product.stock !== null && product.stock !== undefined && product.stock <= 0) {
+    await interaction.editReply('❌ Produto fora de estoque.');
+    return;
+  }
+
+  // Criar canal privado de compra
+  const { createPurchaseTicketChannel } = await import('../utils/channelManager');
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  
+  const ticketChannel = await createPurchaseTicketChannel(
+    interaction.guild!,
+    interaction.user.id,
+    product.name,
+    config.sales_category_id || undefined
+  );
+
+  // Enviar mensagem de boas-vindas no canal
+  const welcomeEmbed = new EmbedBuilder()
+    .setColor('#5865F2')
+    .setTitle(`🛒 Compra: ${product.name}`)
+    .setDescription(
+      `Olá ${interaction.user}!\n\n` +
+      `Você está adquirindo: **${product.name}**\n\n` +
+      `${product.description}\n\n` +
+      `**💰 Valor:** ${formatCurrency(product.price)}\n\n` +
+      `**Escolha o método de pagamento:**`
+    )
+    .setThumbnail(product.image_url || undefined)
+    .setTimestamp();
+
+  const paymentRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId(`pay_pix_${product.id}`)
+        .setLabel('💚 Pagar com PIX')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('💚'),
+      new ButtonBuilder()
+        .setCustomId(`pay_boleto_${product.id}`)
+        .setLabel('🎫 Pagar com Boleto')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🎫'),
+      new ButtonBuilder()
+        .setCustomId(`confirm_buy_${product.id}_mercadopago`)
+        .setLabel('💳 Mercado Pago (Completo)')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('💳')
+    );
+
+  const cancelRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId(`cancel_purchase_ticket`)
+        .setLabel('❌ Cancelar')
+        .setStyle(ButtonStyle.Danger)
+    );
+
+  await ticketChannel.send({
+    content: `${interaction.user}`,
+    embeds: [welcomeEmbed],
+    components: [paymentRow, cancelRow]
+  });
+
+  // Responder ao usuário
+  await interaction.editReply({
+    content: `✅ Canal de compra criado! Acesse ${ticketChannel} para continuar.`
+  });
+
+  logger.info(`Canal de compra criado para ${interaction.user.tag} - Produto: ${product.name}`);
+}
+
+async function handleCatalogCategoryClick(interaction: ButtonInteraction) {
+  await interaction.reply({
+    content: '🔄 Funcionalidade de categorias em desenvolvimento!',
+    ephemeral: true
+  });
+}
+
+/**
+ * Pagamento com PIX (QR Code nativo no Discord)
+ */
+async function handlePayWithPix(interaction: ButtonInteraction) {
+  await interaction.deferReply();
+
+  const productId = interaction.customId.replace('pay_pix_', '');
+  const product = await getProductById(productId);
+
+  if (!product) {
+    await interaction.editReply('❌ Produto não encontrado.');
+    return;
+  }
+
+  try {
+    // Criar transação
+    const transaction = await createTransaction({
+      guild_id: interaction.guildId!,
+      product_id: product.id,
+      user_id: interaction.user.id,
+      amount: product.price,
+      status: TransactionStatus.PENDING,
+      payment_provider: 'mercadopago'
+    });
+
+    // Gerar PIX usando Mercado Pago
+    const { createMercadoPagoPix } = await import('../utils/payments');
+    const pixData = await createMercadoPagoPix(
+      product,
+      interaction.user.id,
+      transaction.id,
+      `${interaction.user.id}@discord.user`
+    );
+
+    // Gerar QR Code a partir do código PIX
+    const QRCode = await import('qrcode');
+    const qrBuffer = await QRCode.toBuffer(pixData.qrCode, {
+      errorCorrectionLevel: 'M',
+      width: 400
+    });
+
+    const { AttachmentBuilder } = await import('discord.js');
+    const qrAttachment = new AttachmentBuilder(qrBuffer, { name: 'pix-qrcode.png' });
+
+    const pixEmbed = new EmbedBuilder()
+      .setColor('#00C853')
+      .setTitle('💚 Pagamento PIX Gerado')
+      .setDescription(
+        `**${product.name}**\n\n` +
+        `💰 **Valor:** ${formatCurrency(product.price)}\n\n` +
+        `**Como pagar:**\n` +
+        `1️⃣ Abra seu app de banco\n` +
+        `2️⃣ Escolha "Pix" → "Ler QR Code"\n` +
+        `3️⃣ Escaneie o QR Code acima\n` +
+        `4️⃣ Ou use o código Copia e Cola abaixo\n\n` +
+        `⚡ **Pagamento instantâneo!**\n` +
+        `Assim que pagar, você receberá o produto automaticamente.\n\n` +
+        `⏱️ **Expira em:** 30 minutos`
+      )
+      .setImage('attachment://pix-qrcode.png')
+      .addFields(
+        { name: '🆔 ID da Transação', value: `\`${transaction.id}\``, inline: false }
+      )
+      .setTimestamp();
+
+    const pixCodeEmbed = new EmbedBuilder()
+      .setColor('#00C853')
+      .setTitle('📋 Código Copia e Cola')
+      .setDescription(`\`\`\`${pixData.qrCode}\`\`\``)
+      .setFooter({ text: 'Copie o código acima e cole no seu app de pagamento' });
+
+    const refreshRow = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId(`check_payment_${transaction.id}`)
+          .setLabel('🔄 Verificar Pagamento')
+          .setStyle(ButtonStyle.Primary)
+      );
+
+    await interaction.editReply({
+      embeds: [pixEmbed, pixCodeEmbed],
+      files: [qrAttachment],
+      components: [refreshRow]
+    });
+
+    logger.info(`PIX gerado para ${interaction.user.tag} - Produto: ${product.name} - Valor: ${product.price}`);
+  } catch (error) {
+    logger.error(`Erro ao gerar PIX: ${error}`);
+    await interaction.editReply('❌ Erro ao gerar pagamento PIX. Tente novamente ou escolha outro método.');
+  }
+}
+
+/**
+ * Pagamento com Boleto
+ */
+async function handlePayWithBoleto(interaction: ButtonInteraction) {
+  await interaction.deferReply();
+
+  const productId = interaction.customId.replace('pay_boleto_', '');
+  const product = await getProductById(productId);
+
+  if (!product) {
+    await interaction.editReply('❌ Produto não encontrado.');
+    return;
+  }
+
+  try {
+    // Criar transação
+    const transaction = await createTransaction({
+      guild_id: interaction.guildId!,
+      product_id: product.id,
+      user_id: interaction.user.id,
+      amount: product.price,
+      status: TransactionStatus.PENDING,
+      payment_provider: 'mercadopago'
+    });
+
+    // Gerar boleto via Mercado Pago (usando preferência com método boleto)
+    const { createMercadoPagoPreference } = await import('../utils/payments');
+    const paymentLink = await createMercadoPagoPreference(
+      product,
+      interaction.user.id,
+      transaction.id
+    );
+
+    const boletoEmbed = new EmbedBuilder()
+      .setColor('#FF9800')
+      .setTitle('🎫 Boleto Bancário Gerado')
+      .setDescription(
+        `**${product.name}**\n\n` +
+        `💰 **Valor:** ${formatCurrency(product.price)}\n\n` +
+        `**Como pagar:**\n` +
+        `1️⃣ Clique no botão abaixo\n` +
+        `2️⃣ Escolha "Boleto Bancário"\n` +
+        `3️⃣ Baixe o boleto\n` +
+        `4️⃣ Pague em qualquer banco/app\n\n` +
+        `⚠️ **Atenção:**\n` +
+        `• Boleto leva até 2 dias úteis para compensar\n` +
+        `• Você receberá o produto após a compensação\n\n` +
+        `🆔 **ID da Transação:** \`${transaction.id}\``
+      )
+      .setTimestamp();
+
+    const boletoRow = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setLabel('Gerar Boleto')
+          .setStyle(ButtonStyle.Link)
+          .setURL(paymentLink)
+          .setEmoji('🎫')
+      );
+
+    await interaction.editReply({
+      embeds: [boletoEmbed],
+      components: [boletoRow]
+    });
+
+    logger.info(`Boleto gerado para ${interaction.user.tag} - Produto: ${product.name}`);
+  } catch (error) {
+    logger.error(`Erro ao gerar boleto: ${error}`);
+    await interaction.editReply('❌ Erro ao gerar boleto. Tente novamente ou escolha outro método.');
+  }
 }

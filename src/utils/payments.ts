@@ -257,6 +257,55 @@ export async function createMercadoPagoPreference(
   }
 }
 
+// Criar pagamento PIX direto (sem redirecionamento)
+export async function createMercadoPagoPix(
+  product: Product,
+  userId: string,
+  transactionId: string,
+  payerEmail: string
+): Promise<{
+  qrCode: string;
+  qrCodeBase64: string;
+  ticketUrl?: string;
+  paymentId: string;
+}> {
+  try {
+    const { payment } = await getMercadoPagoClients(product.guild_id);
+
+    const paymentData = {
+      transaction_amount: product.price,
+      description: product.name,
+      payment_method_id: 'pix',
+      payer: {
+        email: payerEmail,
+        identification: {
+          type: 'CPF',
+          number: '00000000000' // Placeholder - em produção, coletar do cliente
+        }
+      },
+      metadata: {
+        transaction_id: transactionId,
+        product_id: product.id,
+        guild_id: product.guild_id,
+        user_id: userId
+      },
+      notification_url: `${process.env.WEBHOOK_URL}/webhooks/mercadopago`
+    };
+
+    const response = await payment.create({ body: paymentData });
+
+    return {
+      qrCode: response.point_of_interaction?.transaction_data?.qr_code || '',
+      qrCodeBase64: response.point_of_interaction?.transaction_data?.qr_code_base64 || '',
+      ticketUrl: response.point_of_interaction?.transaction_data?.ticket_url,
+      paymentId: response.id?.toString() || ''
+    };
+  } catch (error) {
+    console.error('Erro ao criar pagamento PIX Mercado Pago:', error);
+    throw new Error('Falha ao criar pagamento PIX');
+  }
+}
+
 // Verificar pagamento do Mercado Pago
 export async function verifyMercadoPagoPayment(guildId: string, paymentId: string): Promise<any> {
   try {
