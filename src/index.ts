@@ -42,8 +42,10 @@ const client = new Client({
  */
 async function loadCommands() {
   const commandsPath = join(__dirname, 'commands');
+  // Em produção, carregar apenas .js; em desenvolvimento, .ts
+  const fileExtension = process.env.NODE_ENV === 'production' ? '.js' : '.ts';
   const commandFiles = readdirSync(commandsPath).filter(file => 
-    file.endsWith('.ts') || file.endsWith('.js')
+    file.endsWith(fileExtension)
   );
 
   logger.info(`📦 Carregando ${commandFiles.length} comando(s)...`);
@@ -66,8 +68,10 @@ async function loadCommands() {
  */
 async function loadEvents() {
   const eventsPath = join(__dirname, 'events');
+  // Em produção, carregar apenas .js; em desenvolvimento, .ts
+  const fileExtension = process.env.NODE_ENV === 'production' ? '.js' : '.ts';
   const eventFiles = readdirSync(eventsPath).filter(file => 
-    file.endsWith('.ts') || file.endsWith('.js')
+    file.endsWith(fileExtension)
   );
 
   logger.info(`📦 Carregando ${eventFiles.length} evento(s)...`);
