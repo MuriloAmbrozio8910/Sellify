@@ -37,7 +37,21 @@ import {
   handleTicketActionButton,
   handleBroadcastConfirmation
 } from './panelHandlers';
-import { handleAddProductModalSubmit } from '../modals/productModal';
+import {
+  showAddProductModal,
+  handleAddProductModalSubmit,
+  handleEditProductModalSubmit,
+  handleProductExtrasModalSubmit,
+  handleProductActionButton
+} from '../modals/productModal';
+import {
+  handleAddCouponModalSubmit,
+  handleCouponActionButton
+} from '../modals/couponModal';
+import {
+  handleCreateAnnouncementModalSubmit,
+  handleAnnouncementActionButton
+} from '../modals/announcementModal';
 
 export const name = 'interactionCreate';
 
@@ -118,6 +132,18 @@ async function handleButton(interaction: ButtonInteraction) {
     // Confirmação de broadcast
     else if (customId.includes('broadcast')) {
       await handleBroadcastConfirmation(interaction);
+    }
+    // Botões de gerenciamento de produtos (modais/json)
+    else if (customId.startsWith('product_')) {
+      await handleProductActionButton(interaction);
+    }
+    // Botões relacionados a cupons
+    else if (customId.startsWith('coupon_')) {
+      await handleCouponActionButton(interaction);
+    }
+    // Botões relacionados a anúncios
+    else if (customId.startsWith('announcement_')) {
+      await handleAnnouncementActionButton(interaction);
     }
     // Navegação do catálogo
     else if (customId.startsWith('catalog_page_')) {
@@ -218,6 +244,22 @@ async function handleModal(interaction: any) {
     // Modal de adicionar produto
     else if (customId === 'addproduct_modal') {
       await handleAddProductModalSubmit(interaction);
+    }
+    // Modal de edição de produto
+    else if (customId.startsWith('editproduct_modal_')) {
+      await handleEditProductModalSubmit(interaction);
+    }
+    // Modal de detalhes extras do produto
+    else if (customId.startsWith('product_extras_modal_')) {
+      await handleProductExtrasModalSubmit(interaction);
+    }
+    // Modal de cupons
+    else if (customId === 'addcoupon_modal') {
+      await handleAddCouponModalSubmit(interaction);
+    }
+    // Modal de anúncios
+    else if (customId.startsWith('create_announcement_modal_')) {
+      await handleCreateAnnouncementModalSubmit(interaction);
     }
   } catch (error) {
     logger.error(`Erro ao processar modal: ${error}`);

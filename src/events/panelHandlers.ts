@@ -234,15 +234,23 @@ async function handleProductsPanel(interaction: ButtonInteraction) {
   const embed = new EmbedBuilder()
     .setColor('#5865F2')
     .setTitle('🛍️ Painel de Produtos')
-    .setDescription('Gerencie todos os produtos do seu servidor')
-    .addFields(
-      { name: '📦 Ações Disponíveis', value: 
-        `• \`/addproduct\` - Adicionar produto (abre formulário) ✨\n` +
-        `• \`/editproduct\` - Editar produto existente\n` +
-        `• \`/removeproduct\` - Remover produto\n` +
-        `• \`/catalogo\` - Ver catálogo completo`
-      }
-    );
+    .setDescription(
+      'Gerencie todos os produtos do seu servidor.\n\n' +
+      '📝 **Comandos com Formulário:**\n' +
+      '`/addproduct` - Criar novo produto (abre modal)\n' +
+      '`/editproduct id` - Editar produto (abre modal pré-preenchido)\n\n' +
+      '📄 **Campos do Formulário:**\n' +
+      '• **Nome** e **Descrição** do produto\n' +
+      '• **Preço** (ex: 97.90)\n' +
+      '• **Tipo:** unique (compra única) ou subscription (assinatura)\n' +
+      '• **Estoque:** número ou vazio para ilimitado\n\n' +
+      '🎯 **Detalhes Extras (opcional):**\n' +
+      'Imagem, role atribuída, conteúdo de entrega automática\n\n' +
+      '🛠️ **Outros comandos:**\n' +
+      '`/removeproduct` - Remover produto\n' +
+      '`/catalogo` - Ver catálogo completo'
+    )
+    .setFooter({ text: 'Os formulários facilitam a criação e edição!' });
 
   const row = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
@@ -289,14 +297,18 @@ async function handleCouponsPanel(interaction: ButtonInteraction) {
   const embed = new EmbedBuilder()
     .setColor('#FFA500')
     .setTitle('🎟️ Painel de Cupons')
-    .setDescription('Gerencie cupons de desconto')
-    .addFields(
-      { name: '🎫 Ações Disponíveis', value: 
-        `• \`/addcoupon\` - Criar novo cupom\n` +
-        `• Configure cupons de desconto percentual ou fixo\n` +
-        `• Defina limite de usos e validade`
-      }
-    );
+    .setDescription(
+      'Gerencie cupons de desconto.\n\n' +
+      '📝 **Comando com Formulário:**\n' +
+      '`/addcoupon` - Criar cupom (abre modal)\n\n' +
+      '📄 **Campos do Formulário:**\n' +
+      '• **Código** do cupom (ex: PROMO10)\n' +
+      '• **Desconto percentual** (1-100) ou **Desconto fixo** (R$)\n' +
+      '• **Limite de usos** (vazio = ilimitado)\n' +
+      '• **Data de expiração** (DD/MM/YYYY, opcional)\n\n' +
+      '🎯 **Dica:** Você pode definir desconto percentual OU fixo, mas não precisa preencher ambos!'
+    )
+    .setFooter({ text: 'Cupons ajudam a aumentar suas vendas!' });
 
   const row = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
@@ -393,22 +405,22 @@ async function handleAnnouncementsPanel(interaction: ButtonInteraction) {
   const embed = new EmbedBuilder()
     .setColor('#FF6B6B')
     .setTitle('📢 Painel de Anúncios')
-    .setDescription('Sistema de anúncios e notificações programadas')
-    .addFields(
-      { name: '📝 Comandos', value: 
-        `• \`/anuncio criar\` - Criar e enviar anúncio\n` +
-        `• \`/anuncio agendar\` - Agendar anúncio\n` +
-        `• \`/anuncio listar\` - Ver anúncios criados\n` +
-        `• \`/anuncio cancelar\` - Cancelar agendamento\n` +
-        `• \`/anuncio broadcast\` - Enviar DM em massa`
-      },
-      { name: '⚡ Recursos', value: 
-        `✨ Embeds personalizados\n` +
-        `⏰ Agendamento automático\n` +
-        `🎯 Targeting por roles\n` +
-        `📬 DM em massa`
-      }
-    );
+    .setDescription(
+      'Crie e gerencie anúncios para os membros.\n\n' +
+      '📝 **Comando com Formulário:**\n' +
+      '`/anuncio criar canal:#geral` - Criar anúncio (abre modal)\n\n' +
+      '📄 **Campos do Formulário:**\n' +
+      '• **Título** e **Conteúdo** do anúncio\n' +
+      '• **Cor** do embed (ex: #5865F2)\n' +
+      '• **Imagem** (URL opcional)\n' +
+      '• **Role** para mencionar (opcional, use @everyone ou ID)\n\n' +
+      '🛠️ **Outros comandos:**\n' +
+      '`/anuncio agendar` - Agendar para envio futuro\n' +
+      '`/anuncio listar` - Ver anúncios criados\n' +
+      '`/anuncio cancelar` - Cancelar agendamento\n' +
+      '`/anuncio broadcast` - Enviar DM em massa'
+    )
+    .setFooter({ text: 'Use formulários para criar anúncios rapidamente!' });
 
   const row = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(

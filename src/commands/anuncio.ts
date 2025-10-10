@@ -15,6 +15,7 @@ import {
 } from 'discord.js';
 import { createAnnouncement, sendAnnouncement, cancelAnnouncement, listAnnouncements, sendBroadcastDM } from '../utils/announcementManager';
 import { AnnouncementStatus } from '../types';
+import { showCreateAnnouncementModal } from '../modals/announcementModal';
 
 export const data = new SlashCommandBuilder()
   .setName('anuncio')
@@ -24,39 +25,12 @@ export const data = new SlashCommandBuilder()
     subcommand
       .setName('criar')
       .setDescription('Criar um novo anúncio')
-      .addStringOption(option =>
-        option
-          .setName('titulo')
-          .setDescription('Título do anúncio')
-          .setRequired(true)
-      )
-      .addStringOption(option =>
-        option
-          .setName('conteudo')
-          .setDescription('Conteúdo do anúncio')
-          .setRequired(true)
-      )
       .addChannelOption(option =>
         option
           .setName('canal')
           .setDescription('Canal onde o anúncio será enviado')
           .addChannelTypes(ChannelType.GuildText)
           .setRequired(true)
-      )
-      .addRoleOption(option =>
-        option
-          .setName('mencionar_role')
-          .setDescription('Role para mencionar (deixe vazio para @everyone)')
-      )
-      .addStringOption(option =>
-        option
-          .setName('cor')
-          .setDescription('Cor do embed (ex: #FF5733)')
-      )
-      .addStringOption(option =>
-        option
-          .setName('imagem')
-          .setDescription('URL da imagem')
       )
   )
   .addSubcommand(subcommand =>
@@ -167,49 +141,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleCreateAnnouncement(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
-  const title = interaction.options.getString('titulo', true);
-  const content = interaction.options.getString('conteudo', true);
   const channel = interaction.options.getChannel('canal', true);
-  const role = interaction.options.getRole('mencionar_role');
-  const color = interaction.options.getString('cor') || '#5865F2';
-  const imageUrl = interaction.options.getString('imagem');
-
-  try {
-    const announcement = await createAnnouncement(
-      interaction.guildId!,
-      interaction.user.id,
-      {
-        title,
-        content,
-        channel_id: channel.id,
-        target_role_id: role?.id,
-        color,
-        image_url: imageUrl || undefined
-      }
-    );
-
-    // Enviar imediatamente
-    await sendAnnouncement(announcement.id, interaction.guild!);
-
-    const embed = new EmbedBuilder()
-      .setColor('#00FF00')
-      .setTitle('✅ Anúncio Criado e Enviado!')
-      .setDescription(`O anúncio foi enviado em ${channel}`)
-      .addFields(
-        { name: 'Título', value: title, inline: false },
-        { name: 'Canal', value: channel.toString(), inline: true },
-        { name: 'ID', value: announcement.id, inline: true }
-      )
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [embed] });
-  } catch (error: any) {
-    await interaction.editReply({
-      content: `❌ ${error.message || 'Erro ao criar anúncio.'}`
-    });
-  }
+  await showCreateAnnouncementModal(interaction, channel.id);
 }
 
 async function handleScheduleAnnouncement(interaction: ChatInputCommandInteraction) {
