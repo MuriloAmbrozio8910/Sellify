@@ -30,6 +30,13 @@ import { confirmDelete } from '../commands/removeproduct';
 import { addTemporaryRole } from '../utils/roleManager';
 import { createPrivateChannel, sendTransactionLog } from '../utils/channelManager';
 import { notifyBuyerPurchase, notifyAdminPurchase } from '../utils/logger';
+import { 
+  handlePanelButton,
+  handleTicketCreationButton,
+  handleTicketModal,
+  handleTicketActionButton,
+  handleBroadcastConfirmation
+} from './panelHandlers';
 
 export const name = 'interactionCreate';
 
@@ -95,8 +102,24 @@ async function handleButton(interaction: ButtonInteraction) {
   const customId = interaction.customId;
 
   try {
+    // Painéis principais
+    if (customId.startsWith('panel_')) {
+      await handlePanelButton(interaction);
+    }
+    // Criação de tickets do painel
+    else if (customId.startsWith('create_ticket_')) {
+      await handleTicketCreationButton(interaction);
+    }
+    // Ações de tickets
+    else if (customId.startsWith('ticket_')) {
+      await handleTicketActionButton(interaction);
+    }
+    // Confirmação de broadcast
+    else if (customId.includes('broadcast')) {
+      await handleBroadcastConfirmation(interaction);
+    }
     // Navegação do catálogo
-    if (customId.startsWith('catalog_page_')) {
+    else if (customId.startsWith('catalog_page_')) {
       await handleCatalogNavigation(interaction);
     }
     // Refresh do catálogo
@@ -184,7 +207,22 @@ async function handleSelectMenu(interaction: StringSelectMenuInteraction) {
  * Handler para modais
  */
 async function handleModal(interaction: any) {
-  // Implementar handlers de modals se necessário
+  const customId = interaction.customId;
+  
+  try {
+    // Modal de criação de ticket
+    if (customId.startsWith('ticket_modal_')) {
+      await handleTicketModal(interaction);
+    }
+  } catch (error) {
+    logger.error(`Erro ao processar modal: ${error}`);
+    
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply({ content: '❌ Erro ao processar formulário.' });
+    } else {
+      await interaction.reply({ content: '❌ Erro ao processar formulário.', ephemeral: true });
+    }
+  }
 }
 
 /**

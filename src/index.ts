@@ -10,6 +10,7 @@ import { join } from 'path';
 import { logger } from './utils/logger';
 import { setDiscordClient } from './webhooks/deliveryHandler';
 import { startWebhookServer } from './webhooks/server';
+import { initializeAnnouncementScheduler } from './utils/announcementManager';
 
 // Carregar variáveis de ambiente
 config();
@@ -110,6 +111,9 @@ async function initialize() {
     } else {
       logger.warning('⚠️ WEBHOOK_PORT não configurado. Servidor de webhooks não iniciado.');
     }
+
+    // Inicializar scheduler de anúncios
+    initializeAnnouncementScheduler(client);
 
     // Login no Discord
     await client.login(process.env.DISCORD_TOKEN);

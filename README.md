@@ -27,8 +27,41 @@ Sistema completo de vendas para Discord com suporte a pagamentos, assinaturas, r
 - ✅ Logs detalhados para admins
 - ✅ Alertas de estoque baixo
 
-### 📊 Painel Administrativo
-- ✅ Dashboard web com Next.js + Tailwind CSS
+### 🎫 Sistema de Tickets
+- ✅ Criação de tickets com categorias e prioridades
+- ✅ Painel interativo para abertura de tickets
+- ✅ Sistema de assumir tickets por moderadores
+- ✅ Notificações automáticas para moderadores online
+- ✅ Canais privados para cada ticket
+- ✅ Estatísticas e tempo médio de resolução
+- ✅ Sistema de fechamento com logs
+
+### 📢 Anúncios e Notificações
+- ✅ Criação de anúncios com embeds personalizados
+- ✅ Agendamento automático de anúncios
+- ✅ Sistema de broadcast DM em massa
+- ✅ Targeting por roles específicas
+- ✅ Anúncios com imagens e cores customizáveis
+- ✅ Gerenciamento completo (criar, agendar, cancelar, listar)
+
+### 🧠 Inteligência Artificial
+- ✅ Chat inteligente com contexto
+- ✅ Geração automática de conteúdo (anúncios, posts, emails)
+- ✅ Moderação automática de conteúdo
+- ✅ Assistente administrativo para tarefas complexas
+- ✅ Análise de sentimento
+- ✅ Sugestões de respostas para tickets
+- ✅ Estatísticas de uso e custos de IA
+
+### 🎛️ Painel de Gerenciamento
+- ✅ Painel interativo com botões e navegação moderna
+- ✅ Interface unificada para todas as funcionalidades
+- ✅ Atalhos rápidos para ações comuns
+- ✅ Estatísticas em tempo real
+- ✅ Design moderno e intuitivo
+
+### 📊 Dashboard Web
+- ✅ Painel web com Next.js + Tailwind CSS
 - ✅ Estatísticas em tempo real
 - ✅ Histórico de transações
 - ✅ Gerenciamento de produtos via interface web
@@ -158,17 +191,41 @@ docker-compose down
 
 ## 📝 Comandos Disponíveis
 
-### Administração
+### 🎛️ Painel de Gerenciamento
+- `/panel` - Painel interativo com todas as funcionalidades
+
+### 🛍️ Vendas e Produtos
 - `/addproduct` - Adicionar novo produto
 - `/editproduct` - Editar produto existente
 - `/removeproduct` - Remover produto
 - `/addcoupon` - Criar cupom de desconto
-- `/config` - Configurar bot no servidor
+- `/catalogo` - Ver catálogo de produtos
+- `/myorders` - Ver suas compras (usuário)
 - `/stats` - Ver estatísticas de vendas
 
-### Usuários
-- `/catalogo` - Ver catálogo de produtos
-- `/myorders` - Ver suas compras
+### 🎫 Sistema de Tickets
+- `/ticket abrir` - Abrir novo ticket de suporte
+- `/ticket listar` - Listar tickets (moderadores)
+- `/ticket stats` - Ver estatísticas de tickets
+- `/ticket setup` - Configurar sistema de tickets
+- `/ticket painel` - Criar painel público de tickets
+
+### 📢 Anúncios
+- `/anuncio criar` - Criar e enviar anúncio imediatamente
+- `/anuncio agendar` - Agendar anúncio para data futura
+- `/anuncio listar` - Listar anúncios criados
+- `/anuncio cancelar` - Cancelar anúncio agendado
+- `/anuncio broadcast` - Enviar DM em massa (use com cuidado)
+
+### 🧠 Inteligência Artificial
+- `/ia chat` - Conversar com IA
+- `/ia gerar` - Gerar conteúdo automaticamente
+- `/ia moderar` - Analisar conteúdo com moderação IA
+- `/ia assistente` - Assistente para tarefas administrativas
+- `/ia stats` - Ver estatísticas de uso de IA
+
+### ⚙️ Configuração
+- `/config` - Configurar bot no servidor
 
 ## 🔧 Configuração do Servidor
 
@@ -220,6 +277,59 @@ Este comando criará automaticamente:
   desconto_percentual: 10
   max_usos: 100
   dias_validade: 30
+```
+
+### Configurar Sistema de Tickets
+```
+/ticket setup
+  categoria: @Tickets
+  role_suporte: @Moderador
+  canal_logs: #logs-tickets
+  notificar_mods: true
+```
+
+### Criar Painel de Tickets
+```
+/ticket painel
+  canal: #suporte
+```
+
+### Criar Anúncio
+```
+/anuncio criar
+  titulo: 🎉 Nova Funcionalidade!
+  conteudo: Estamos felizes em anunciar nossa nova feature de IA!
+  canal: #anuncios
+  mencionar_role: @everyone
+  cor: #FF6B6B
+```
+
+### Agendar Anúncio
+```
+/anuncio agendar
+  titulo: Promoção de Final de Ano
+  conteudo: Aproveite 50% de desconto em todos os produtos!
+  canal: #anuncios
+  data_hora: 31/12/2024 23:59
+```
+
+### Gerar Conteúdo com IA
+```
+/ia gerar
+  tipo: Anúncio
+  especificacoes: Anúncio para um curso de programação Python, público-alvo iniciantes, tom entusiasmado
+```
+
+### Chat com IA
+```
+/ia chat
+  mensagem: Como posso melhorar o engajamento no meu servidor Discord?
+```
+
+### Moderar Conteúdo
+```
+/ia moderar
+  texto: [texto para analisar]
 ```
 
 ## 🔄 Webhooks
@@ -345,13 +455,20 @@ MIT License - veja LICENSE para detalhes.
 
 ## 🎯 Roadmap
 
+- [x] Sistema de tickets ✅
+- [x] Sistema de anúncios ✅
+- [x] Painel de gerenciamento interativo ✅
+- [x] Integração com IA (OpenAI) ✅
+- [x] Sistema de notificações automáticas ✅
 - [ ] Sistema de afiliados
 - [ ] Integração com PayPal
-- [ ] Sistema de tickets
 - [ ] Painel de analytics avançado
 - [ ] API REST para integrações
 - [ ] Sistema de gamificação
 - [ ] Multi-idioma
+- [ ] Sistema de reviews e avaliações de produtos
+- [ ] Integração com mais provedores de pagamento
+- [ ] Sistema de cashback e rewards
 
 ## 📚 Recursos Adicionais
 

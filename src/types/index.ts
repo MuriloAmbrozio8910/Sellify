@@ -174,3 +174,145 @@ export interface Notification {
   thumbnail?: string;
   image?: string;
 }
+
+// Sistema de Tickets
+export enum TicketStatus {
+  OPEN = 'open',
+  CLAIMED = 'claimed',
+  CLOSED = 'closed'
+}
+
+export enum TicketPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  URGENT = 'urgent'
+}
+
+export interface SupportTicket {
+  id: string;
+  guild_id: string;
+  user_id: string;
+  channel_id: string;
+  moderator_id?: string;
+  subject: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  category?: string;
+  created_at: Date;
+  claimed_at?: Date;
+  closed_at?: Date;
+  updated_at: Date;
+}
+
+export interface TicketMessage {
+  id: string;
+  ticket_id: string;
+  user_id: string;
+  message_content: string;
+  created_at: Date;
+}
+
+export interface TicketConfig {
+  guild_id: string;
+  ticket_category_id?: string;
+  support_role_id?: string;
+  log_channel_id?: string;
+  welcome_message?: string;
+  auto_notify_moderators: boolean;
+  max_open_tickets_per_user: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// Sistema de Anúncios
+export enum AnnouncementStatus {
+  DRAFT = 'draft',
+  SCHEDULED = 'scheduled',
+  SENT = 'sent',
+  CANCELLED = 'cancelled'
+}
+
+export interface Announcement {
+  id: string;
+  guild_id: string;
+  title: string;
+  content: string;
+  color: string;
+  image_url?: string;
+  thumbnail_url?: string;
+  created_by: string;
+  target_role_id?: string;
+  channel_id?: string;
+  scheduled_for?: Date;
+  sent_at?: Date;
+  status: AnnouncementStatus;
+  message_id?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// Sistema de IA
+export enum AIInteractionType {
+  CHAT = 'chat',
+  CONTENT_GENERATION = 'content_generation',
+  IMAGE_GENERATION = 'image_generation',
+  MODERATION = 'moderation',
+  AUTOMATION = 'automation'
+}
+
+export interface AIInteraction {
+  id: string;
+  guild_id: string;
+  user_id: string;
+  channel_id?: string;
+  interaction_type: AIInteractionType;
+  prompt: string;
+  response?: string;
+  tokens_used?: number;
+  cost_estimate?: number;
+  created_at: Date;
+}
+
+// Automações
+export enum AutomationType {
+  MESSAGE = 'message',
+  ROLE_ASSIGNMENT = 'role_assignment',
+  CHANNEL_CLEANUP = 'channel_cleanup',
+  ANNOUNCEMENT = 'announcement',
+  CUSTOM = 'custom'
+}
+
+export interface ScheduledAutomation {
+  id: string;
+  guild_id: string;
+  automation_type: AutomationType;
+  target_channel_id?: string;
+  target_role_id?: string;
+  content?: string;
+  cron_schedule?: string;
+  is_active: boolean;
+  last_run?: Date;
+  next_run?: Date;
+  created_by: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// Notificações de Moderador
+export enum ModNotificationType {
+  NEW_TICKET = 'new_ticket',
+  TICKET_CLAIMED = 'ticket_claimed',
+  TICKET_CLOSED = 'ticket_closed',
+  TICKET_MESSAGE = 'ticket_message'
+}
+
+export interface ModeratorNotification {
+  id: string;
+  guild_id: string;
+  moderator_id: string;
+  ticket_id?: string;
+  notification_type: ModNotificationType;
+  is_read: boolean;
+  created_at: Date;
+}
