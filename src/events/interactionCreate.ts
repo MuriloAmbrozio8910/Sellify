@@ -37,6 +37,7 @@ import {
   handleTicketActionButton,
   handleBroadcastConfirmation
 } from './panelHandlers';
+import { handleAddProductModalSubmit } from '../modals/productModal';
 
 export const name = 'interactionCreate';
 
@@ -213,6 +214,10 @@ async function handleModal(interaction: any) {
     // Modal de criação de ticket
     if (customId.startsWith('ticket_modal_')) {
       await handleTicketModal(interaction);
+    }
+    // Modal de adicionar produto
+    else if (customId === 'addproduct_modal') {
+      await handleAddProductModalSubmit(interaction);
     }
   } catch (error) {
     logger.error(`Erro ao processar modal: ${error}`);

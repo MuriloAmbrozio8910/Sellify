@@ -30,6 +30,9 @@ export async function handlePanelButton(interaction: ButtonInteraction) {
   if (customId === 'panel_refresh') {
     await handlePanelRefresh(interaction);
   }
+  else if (customId === 'panel_back_main') {
+    await handleBackToMainPanel(interaction);
+  }
   else if (customId === 'panel_products') {
     await handleProductsPanel(interaction);
   }
@@ -108,33 +111,154 @@ async function handlePanelRefresh(interaction: ButtonInteraction) {
 }
 
 /**
+ * Voltar ao painel principal
+ */
+async function handleBackToMainPanel(interaction: ButtonInteraction) {
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const ticketStats = await getTicketStats(interaction.guildId!);
+
+  const embed = new EmbedBuilder()
+    .setColor('#5865F2')
+    .setTitle('🎛️ Painel de Gerenciamento')
+    .setDescription(
+      `Bem-vindo ao painel de controle do **${interaction.guild!.name}**!\n\n` +
+      `Aqui você pode gerenciar todas as funcionalidades do bot de forma rápida e intuitiva.`
+    )
+    .addFields(
+      {
+        name: '📊 Estatísticas Gerais',
+        value: 
+          `👥 **Membros:** ${interaction.guild!.memberCount}\n` +
+          `🎫 **Tickets Abertos:** ${ticketStats?.open || 0}\n` +
+          `🎫 **Tickets em Atendimento:** ${ticketStats?.claimed || 0}\n` +
+          `✅ **Tickets Fechados:** ${ticketStats?.closed || 0}`,
+        inline: true
+      },
+      {
+        name: '⚙️ Configurações',
+        value:
+          `💰 **Moeda:** ${config.currency}\n` +
+          `🎨 **Cor:** ${config.embed_color}\n` +
+          `💳 **Stripe:** ${config.stripe_enabled ? '✅' : '❌'}\n` +
+          `💚 **Mercado Pago:** ${config.mercadopago_enabled ? '✅' : '❌'}`,
+        inline: true
+      }
+    )
+    .setTimestamp();
+
+  // Primeira linha de botões - Gestão de Produtos e Vendas
+  const row1 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_products')
+        .setLabel('Produtos')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🛍️'),
+      new ButtonBuilder()
+        .setCustomId('panel_sales')
+        .setLabel('Vendas')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('💰'),
+      new ButtonBuilder()
+        .setCustomId('panel_coupons')
+        .setLabel('Cupons')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🎟️'),
+      new ButtonBuilder()
+        .setCustomId('panel_stats')
+        .setLabel('Estatísticas')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📊')
+    );
+
+  // Segunda linha de botões - Tickets e Anúncios
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_tickets')
+        .setLabel('Tickets')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🎫'),
+      new ButtonBuilder()
+        .setCustomId('panel_announcements')
+        .setLabel('Anúncios')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📢'),
+      new ButtonBuilder()
+        .setCustomId('panel_automations')
+        .setLabel('Automações')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🤖'),
+      new ButtonBuilder()
+        .setCustomId('panel_ai')
+        .setLabel('IA')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🧠')
+    );
+
+  // Terceira linha de botões - Configurações
+  const row3 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_config')
+        .setLabel('Configurações')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('⚙️'),
+      new ButtonBuilder()
+        .setCustomId('panel_logs')
+        .setLabel('Logs')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📋'),
+      new ButtonBuilder()
+        .setCustomId('panel_help')
+        .setLabel('Ajuda')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('❓'),
+      new ButtonBuilder()
+        .setCustomId('panel_refresh')
+        .setLabel('Atualizar')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🔄')
+    );
+
+  await interaction.update({
+    embeds: [embed],
+    components: [row1, row2, row3]
+  });
+}
+
+/**
  * Painel de produtos
  */
 async function handleProductsPanel(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const embed = new EmbedBuilder()
     .setColor('#5865F2')
     .setTitle('🛍️ Painel de Produtos')
     .setDescription('Gerencie todos os produtos do seu servidor')
     .addFields(
       { name: '📦 Ações Disponíveis', value: 
-        `• \`/addproduct\` - Adicionar novo produto\n` +
+        `• \`/addproduct\` - Adicionar produto (abre formulário) ✨\n` +
         `• \`/editproduct\` - Editar produto existente\n` +
         `• \`/removeproduct\` - Remover produto\n` +
         `• \`/catalogo\` - Ver catálogo completo`
       }
     );
 
-  await interaction.editReply({ embeds: [embed] });
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_back_main')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.update({ embeds: [embed], components: [row] });
 }
 
 /**
  * Painel de vendas
  */
 async function handleSalesPanel(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const embed = new EmbedBuilder()
     .setColor('#00FF00')
     .setTitle('💰 Painel de Vendas')
@@ -147,15 +271,21 @@ async function handleSalesPanel(interaction: ButtonInteraction) {
       }
     );
 
-  await interaction.editReply({ embeds: [embed] });
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_back_main')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.update({ embeds: [embed], components: [row] });
 }
 
 /**
  * Painel de cupons
  */
 async function handleCouponsPanel(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const embed = new EmbedBuilder()
     .setColor('#FFA500')
     .setTitle('🎟️ Painel de Cupons')
@@ -168,15 +298,21 @@ async function handleCouponsPanel(interaction: ButtonInteraction) {
       }
     );
 
-  await interaction.editReply({ embeds: [embed] });
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_back_main')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.update({ embeds: [embed], components: [row] });
 }
 
 /**
  * Painel de estatísticas
  */
 async function handleStatsPanel(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const embed = new EmbedBuilder()
     .setColor('#9B59B6')
     .setTitle('📊 Painel de Estatísticas')
@@ -188,15 +324,21 @@ async function handleStatsPanel(interaction: ButtonInteraction) {
       }
     );
 
-  await interaction.editReply({ embeds: [embed] });
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_back_main')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.update({ embeds: [embed], components: [row] });
 }
 
 /**
  * Painel de tickets
  */
 async function handleTicketsPanel(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const stats = await getTicketStats(interaction.guildId!);
 
   const embed = new EmbedBuilder()
@@ -219,7 +361,7 @@ async function handleTicketsPanel(interaction: ButtonInteraction) {
       }
     );
 
-  const row = new ActionRowBuilder<ButtonBuilder>()
+  const rowActions = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
         .setCustomId('tickets_create_panel')
@@ -233,15 +375,21 @@ async function handleTicketsPanel(interaction: ButtonInteraction) {
         .setEmoji('🔍')
     );
 
-  await interaction.editReply({ embeds: [embed], components: [row] });
+  const rowBack = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_back_main')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.update({ embeds: [embed], components: [rowActions, rowBack] });
 }
 
 /**
  * Painel de anúncios
  */
 async function handleAnnouncementsPanel(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const embed = new EmbedBuilder()
     .setColor('#FF6B6B')
     .setTitle('📢 Painel de Anúncios')
@@ -262,15 +410,21 @@ async function handleAnnouncementsPanel(interaction: ButtonInteraction) {
       }
     );
 
-  await interaction.editReply({ embeds: [embed] });
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_back_main')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.update({ embeds: [embed], components: [row] });
 }
 
 /**
  * Painel de automações
  */
 async function handleAutomationsPanel(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const embed = new EmbedBuilder()
     .setColor('#00CED1')
     .setTitle('🤖 Painel de Automações')
@@ -288,15 +442,21 @@ async function handleAutomationsPanel(interaction: ButtonInteraction) {
       }
     );
 
-  await interaction.editReply({ embeds: [embed] });
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_back_main')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.update({ embeds: [embed], components: [row] });
 }
 
 /**
  * Painel de IA
  */
 async function handleAIPanel(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const embed = new EmbedBuilder()
     .setColor('#9B59B6')
     .setTitle('🧠 Painel de IA')
@@ -325,15 +485,21 @@ async function handleAIPanel(interaction: ButtonInteraction) {
     )
     .setFooter({ text: 'Powered by OpenAI GPT-4' });
 
-  await interaction.editReply({ embeds: [embed] });
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_back_main')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.update({ embeds: [embed], components: [row] });
 }
 
 /**
  * Painel de configurações
  */
 async function handleConfigPanel(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const config = await getOrCreateGuildConfig(interaction.guildId!);
 
   const embed = new EmbedBuilder()
@@ -352,15 +518,21 @@ async function handleConfigPanel(interaction: ButtonInteraction) {
       }
     );
 
-  await interaction.editReply({ embeds: [embed] });
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_back_main')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.update({ embeds: [embed], components: [row] });
 }
 
 /**
  * Painel de logs
  */
 async function handleLogsPanel(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const embed = new EmbedBuilder()
     .setColor('#34495E')
     .setTitle('📋 Painel de Logs')
@@ -378,15 +550,21 @@ async function handleLogsPanel(interaction: ButtonInteraction) {
       }
     );
 
-  await interaction.editReply({ embeds: [embed] });
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_back_main')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.update({ embeds: [embed], components: [row] });
 }
 
 /**
  * Painel de ajuda
  */
 async function handleHelpPanel(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
-
   const embed = new EmbedBuilder()
     .setColor('#3498DB')
     .setTitle('❓ Ajuda e Documentação')
@@ -413,7 +591,15 @@ async function handleHelpPanel(interaction: ButtonInteraction) {
     )
     .setFooter({ text: 'Bot de Vendas Discord v2.0' });
 
-  await interaction.editReply({ embeds: [embed] });
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_back_main')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.update({ embeds: [embed], components: [row] });
 }
 
 /**

@@ -11,22 +11,28 @@ config();
 
 const commands: any[] = [];
 const commandsPath = join(__dirname, 'commands');
-const fileExtension = process.env.NODE_ENV === 'production' ? '.js' : '.ts';
-const commandFiles = readdirSync(commandsPath).filter(file => 
-  file.endsWith(fileExtension)
-);
+
+// Detectar se estamos em ambiente compilado ou desenvolvimento
+const isCompiled = __filename.endsWith('.js');
+const fileExtension = isCompiled ? '.js' : '.ts';
+
+const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith(fileExtension));
 
 // Carregar comandos
 async function loadCommands() {
-  console.log('📦 Carregando comandos...');
+  console.log('📦 Carregando comandos...\n');
   
   for (const file of commandFiles) {
-    const filePath = join(commandsPath, file);
-    const command = await import(filePath);
-    
-    if ('data' in command) {
-      commands.push(command.data.toJSON());
-      console.log(`✅ ${command.data.name}`);
+    try {
+      const filePath = join(commandsPath, file);
+      const command = await import(filePath);
+      
+      if ('data' in command && command.data) {
+        commands.push(command.data.toJSON());
+        console.log(`   ✅ ${command.data.name}`);
+      }
+    } catch (error) {
+      console.error(`   ❌ Erro ao carregar ${file}:`, error);
     }
   }
   
