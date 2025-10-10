@@ -549,9 +549,9 @@ async function handlePayWithPix(interaction: ButtonInteraction) {
 
     // Gerar PIX usando Mercado Pago
     const { createMercadoPagoPix } = await import('../utils/payments');
-    // Gerar email válido a partir do username Discord
+    // Gerar email válido com formato conservador
     const cleanUsername = interaction.user.username.replace(/[^a-z0-9]/gi, '').toLowerCase() || 'user';
-    const userEmail = `${cleanUsername}.${interaction.user.id.slice(-6)}@discord.temp`;
+    const userEmail = `${cleanUsername}${interaction.user.id.slice(-6)}@test.com`;
     
     const pixData = await createMercadoPagoPix(
       product,
