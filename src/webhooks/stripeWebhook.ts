@@ -72,6 +72,30 @@ function extractGuildId(rawBody: Buffer): string | null {
   }
 }
 
+function extractGuildIdFromEvent(event: Stripe.Event): string | null {
+  try {
+    const obj = event.data.object as any;
+    const metadata = obj?.metadata;
+    
+    if (metadata) {
+      const guildId = metadata.guild_id ?? metadata.guildId;
+      if (guildId) return guildId;
+    }
+    
+    // Para payment_intent, pode estar em charges
+    if ('charges' in obj && obj.charges?.data?.[0]?.metadata) {
+      const chargeMetadata = obj.charges.data[0].metadata;
+      const guildId = chargeMetadata.guild_id ?? chargeMetadata.guildId;
+      if (guildId) return guildId;
+    }
+    
+    return null;
+  } catch (error) {
+    logger.error(`Erro ao extrair guild_id do evento Stripe: ${error}`);
+    return null;
+  }
+}
+
 async function dispatchStripeEvent(event: Stripe.Event): Promise<void> {
   switch (event.type) {
     case 'checkout.session.completed':
@@ -108,8 +132,8 @@ export async function handleStripeWebhook(req: Request, res: Response) {
   const guildId = extractGuildId(rawBody);
 
   if (!guildId) {
-    logger.error('Guild ID não encontrado no webhook do Stripe.');
-    return res.status(400).send('Webhook Error: guild_id missing');
+    logger.warning('Guild ID não encontrado no webhook do Stripe. Ignorando evento.');
+    return res.status(200).json({ received: true, skipped: true });
   }
 
   try {
