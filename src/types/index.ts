@@ -1,0 +1,174 @@
+/**
+ * Tipos TypeScript para o sistema de vendas Discord
+ */
+
+import { Collection } from 'discord.js';
+
+// Tipo de produto
+export enum ProductType {
+  UNIQUE = 'unique',
+  SUBSCRIPTION = 'subscription'
+}
+
+// Status de transação
+export enum TransactionStatus {
+  PENDING = 'pending',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  REFUNDED = 'refunded',
+  CANCELLED = 'cancelled'
+}
+
+// Produto
+export interface Product {
+  id: string;
+  guild_id: string;
+  name: string;
+  description: string;
+  price: number;
+  type: ProductType;
+  image_url?: string;
+  stock?: number;
+  role_id?: string; // Role que será dada ao comprador
+  channel_id?: string; // Canal privado a ser criado
+  delivery_content?: string; // Conteúdo digital a ser entregue
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// Transação/Compra
+export interface Transaction {
+  id: string;
+  guild_id: string;
+  product_id: string;
+  user_id: string;
+  amount: number;
+  status: TransactionStatus;
+  payment_provider: 'stripe' | 'mercadopago' | 'manual';
+  payment_id?: string;
+  subscription_id?: string;
+  expires_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type PaymentProvider = 'stripe' | 'mercadopago';
+
+export interface PaymentCredential {
+  guild_id: string;
+  provider: PaymentProvider;
+  api_key: string;
+  webhook_secret?: string;
+  additional_config?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+// Configurações do servidor
+export interface GuildConfig {
+  guild_id: string;
+  sales_category_id?: string; // Categoria para canais de vendas
+  log_channel_id?: string; // Canal de logs
+  admin_role_id?: string; // Role de admin
+  embed_color: string; // Cor dos embeds
+  welcome_message?: string;
+  purchase_message?: string;
+  currency: string; // BRL, USD, etc
+  stripe_enabled: boolean;
+  mercadopago_enabled: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// Cupom de desconto
+export interface Coupon {
+  id: string;
+  guild_id: string;
+  code: string;
+  discount_percent?: number;
+  discount_fixed?: number;
+  max_uses?: number;
+  current_uses: number;
+  expires_at?: Date;
+  is_active: boolean;
+  created_at: Date;
+}
+
+// Feedback de produto
+export interface ProductFeedback {
+  id: string;
+  guild_id: string;
+  product_id: string;
+  user_id: string;
+  rating: number; // 1-5
+  comment?: string;
+  created_at: Date;
+}
+
+// Log de acesso
+export interface AccessLog {
+  id: string;
+  guild_id: string;
+  user_id: string;
+  product_id?: string;
+  action: string;
+  details?: string;
+  created_at: Date;
+}
+
+// Role temporária
+export interface TemporaryRole {
+  id: string;
+  guild_id: string;
+  user_id: string;
+  role_id: string;
+  expires_at: Date;
+  created_at: Date;
+}
+
+// Dados de paginação para catálogo
+export interface CatalogPage {
+  products: Product[];
+  currentPage: number;
+  totalPages: number;
+  totalProducts: number;
+}
+
+// Comando Discord customizado
+export interface Command {
+  name: string;
+  description: string;
+  options?: any[];
+  execute: (interaction: any) => Promise<void>;
+}
+
+// Cliente Discord estendido
+export interface ExtendedClient {
+  commands: Collection<string, Command>;
+  login(token: string): Promise<string>;
+}
+
+// Dados do webhook de pagamento
+export interface PaymentWebhookData {
+  provider: 'stripe' | 'mercadopago';
+  transaction_id: string;
+  status: TransactionStatus;
+  amount: number;
+  customer_id: string;
+  product_id?: string;
+  metadata?: any;
+}
+
+// Notificação
+export interface Notification {
+  guild_id: string;
+  user_id?: string;
+  channel_id?: string;
+  title: string;
+  description: string;
+  color?: number;
+  fields?: { name: string; value: string; inline?: boolean }[];
+  thumbnail?: string;
+  image?: string;
+}
