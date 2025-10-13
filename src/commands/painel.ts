@@ -110,7 +110,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         inline: false
       }
     )
-    .setThumbnail(interaction.guild!.iconURL() || '')
+    .setThumbnail(interaction.guild!.iconURL())
     .setFooter({ 
       text: `${interaction.guild!.name} • Sistema Sellify`, 
       iconURL: interaction.guild!.iconURL() || undefined 

@@ -327,7 +327,7 @@ async function handleSetupAnnouncement(interaction: ChatInputCommandInteraction)
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({
       content: '❌ Apenas administradores podem personalizar anúncios.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
@@ -336,8 +336,8 @@ async function handleSetupAnnouncement(interaction: ChatInputCommandInteraction)
     .setColor('#E74C3C')
     .setTitle('🎨 Painel de Personalização - Anúncios')
     .setDescription(
-      'Personalize completamente a aparência dos seus anúncios.\n\n' +
-      '**Use os botões abaixo para customizar:**'
+      'Personalize a aparência dos seus anúncios.\n\n' +
+      '**Use os botões abaixo:**'
     )
     .addFields(
       { name: '🎨 Visual', value: 'Título, descrição, cores, imagens', inline: true },
@@ -417,6 +417,6 @@ async function handleSetupAnnouncement(interaction: ChatInputCommandInteraction)
   await interaction.reply({
     embeds: [embed],
     components: [row1, row2, row3, row4],
-    ephemeral: true
+    flags: 64
   });
 }
