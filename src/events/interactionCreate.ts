@@ -118,8 +118,20 @@ async function handleButton(interaction: ButtonInteraction) {
   const customId = interaction.customId;
 
   try {
-    // Painéis principais
-    if (customId.startsWith('panel_')) {
+    // Painéis principais e todos os botões dos sub-painéis
+    if (customId.startsWith('panel_') || 
+        customId.startsWith('products_') ||
+        customId.startsWith('coupons_') ||
+        customId.startsWith('sales_') ||
+        customId.startsWith('stats_') ||
+        customId.startsWith('announcements_') ||
+        customId.startsWith('automations_') ||
+        customId.startsWith('ai_') ||
+        customId.startsWith('config_') ||
+        customId.startsWith('logs_') ||
+        customId.startsWith('help_') ||
+        customId.startsWith('tickets_view') ||
+        customId.startsWith('tickets_create')) {
       await handlePanelButton(interaction);
     }
     // Criação de tickets do painel
