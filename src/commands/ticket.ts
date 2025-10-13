@@ -76,6 +76,11 @@ export const data = new SlashCommandBuilder()
   )
   .addSubcommand(subcommand =>
     subcommand
+      .setName('config')
+      .setDescription('⚙️ Configurar canais, roles e funcionalidades do sistema')
+  )
+  .addSubcommand(subcommand =>
+    subcommand
       .setName('setup')
       .setDescription('🎨 Painel de personalização completa do sistema de tickets')
   )
@@ -104,6 +109,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       break;
     case 'stats':
       await handleTicketStats(interaction);
+      break;
+    case 'config':
+      await handleConfigTickets(interaction);
       break;
     case 'setup':
       await handleSetupTickets(interaction);
@@ -247,6 +255,87 @@ async function handleTicketStats(interaction: ChatInputCommandInteraction) {
       content: `❌ ${error.message || 'Erro ao buscar estatísticas.'}`
     });
   }
+}
+
+async function handleConfigTickets(interaction: ChatInputCommandInteraction) {
+  // Verificar permissão
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+    await interaction.reply({
+      content: '❌ Apenas administradores podem configurar o sistema de tickets.',
+      ephemeral: true
+    });
+    return;
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor('#5865F2')
+    .setTitle('⚙️ Configuração do Sistema de Tickets')
+    .setDescription(
+      'Configure os aspectos funcionais do sistema de tickets.\n\n' +
+      '**Use os botões abaixo para configurar:**'
+    )
+    .addFields(
+      { name: '📁 Categoria', value: 'Onde os tickets serão criados', inline: true },
+      { name: '👥 Role de Suporte', value: 'Quem pode ver os tickets', inline: true },
+      { name: '📋 Canal de Logs', value: 'Registro de ações', inline: true },
+      { name: '💬 Mensagem', value: 'Mensagem de boas-vindas', inline: true },
+      { name: '🔔 Notificações', value: 'Notificar moderadores', inline: true },
+      { name: '📊 Limite', value: 'Tickets por usuário', inline: true }
+    )
+    .setFooter({ text: 'Clique nos botões para configurar cada opção' })
+    .setTimestamp();
+
+  const row1 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('config_ticket_category')
+        .setLabel('Categoria')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📁'),
+      new ButtonBuilder()
+        .setCustomId('config_ticket_support_role')
+        .setLabel('Role de Suporte')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('👥'),
+      new ButtonBuilder()
+        .setCustomId('config_ticket_log_channel')
+        .setLabel('Canal de Logs')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📋')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('config_ticket_welcome_message')
+        .setLabel('Mensagem')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('💬'),
+      new ButtonBuilder()
+        .setCustomId('config_ticket_notifications')
+        .setLabel('Notificações')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🔔'),
+      new ButtonBuilder()
+        .setCustomId('config_ticket_limit')
+        .setLabel('Limite')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📊')
+    );
+
+  const row3 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('config_ticket_view')
+        .setLabel('📄 Ver Configuração Atual')
+        .setStyle(ButtonStyle.Success)
+    );
+
+  await interaction.reply({
+    embeds: [embed],
+    components: [row1, row2, row3],
+    ephemeral: true
+  });
 }
 
 async function handleSetupTickets(interaction: ChatInputCommandInteraction) {

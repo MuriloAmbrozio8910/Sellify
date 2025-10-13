@@ -13,7 +13,7 @@ import { formatCurrency } from '../utils/payments';
 import { logger } from '../utils/logger';
 
 export const data = new SlashCommandBuilder()
-  .setName('stats')
+  .setName('estatisticas')
   .setDescription('Ver estatísticas de vendas do servidor')
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 

@@ -1,5 +1,5 @@
 /**
- * Comando /addproduct - Adicionar novo produto (com Modal)
+ * Comando /addcoupon - Criar cupom de desconto
  */
 
 import {
@@ -7,23 +7,21 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits
 } from 'discord.js';
-import { showAddProductModal } from '../modals/productModal';
+import { showAddCouponModal } from '../modals/couponModal';
 
 export const data = new SlashCommandBuilder()
-  .setName('addproduct')
-  .setDescription('📦 Adicionar um novo produto ao catálogo')
+  .setName('adicionar-cupom')
+  .setDescription('Criar um cupom de desconto')
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  // Verificar permissão de administrador
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({
-      content: '❌ Você precisa de permissão de administrador para adicionar produtos.',
+      content: '❌ Você precisa ser administrador para criar cupons.',
       ephemeral: true
     });
     return;
   }
 
-  // Mostrar modal para entrada de dados
-  await showAddProductModal(interaction);
+  await showAddCouponModal(interaction);
 }

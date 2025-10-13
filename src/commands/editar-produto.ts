@@ -11,7 +11,7 @@ import { getProductById } from '../utils/supabase';
 import { showEditProductModal } from '../modals/productModal';
 
 export const data = new SlashCommandBuilder()
-  .setName('editproduct')
+  .setName('editar-produto')
   .setDescription('Editar um produto existente')
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .addStringOption(option =>

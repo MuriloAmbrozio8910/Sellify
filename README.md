@@ -1,482 +1,931 @@
-# 🤖 Discord Sales Bot
+# 🛍️ Sellify Bot - Sistema Completo de Vendas para Discord
 
-Sistema completo de vendas para Discord com suporte a pagamentos, assinaturas, roles automáticas e painel web administrativo.
+Bot profissional de vendas automáticas com sistema de tickets, cupons, assinaturas, personalização visual completa e muito mais.
 
-## ✨ Funcionalidades
+---
 
-### 🛍️ Sistema de Vendas
-- ✅ Gerenciamento completo de produtos (criar, editar, remover)
-- ✅ Produtos únicos e assinaturas recorrentes
+## 📋 Índice
+
+- [Características](#-características)
+- [Instalação](#-instalação)
+- [Configuração Inicial](#-configuração-inicial)
+- [Comandos](#-comandos)
+- [Sistema de Personalização](#-sistema-de-personalização)
+- [Banco de Dados](#-banco-de-dados)
+- [Funcionalidades Detalhadas](#-funcionalidades-detalhadas)
+- [Troubleshooting](#-troubleshooting)
+
+---
+
+## ✨ Características
+
+### 🛒 **Sistema de Vendas**
+- ✅ Vendas automáticas via Discord
+- ✅ Pagamentos via Mercado Pago e Stripe
+- ✅ PIX, Boleto e Cartão de Crédito
+- ✅ Entrega automática de produtos
+- ✅ Sistema de assinaturas (recorrente)
 - ✅ Controle de estoque
-- ✅ Catálogo interativo com navegação por botões
-- ✅ Sistema de cupons de desconto
-- ✅ Múltiplos métodos de pagamento (Stripe e Mercado Pago)
+- ✅ Cupons de desconto
+- ✅ Logs completos de transações
 
-### 💳 Pagamentos
-- ✅ Integração com Stripe (cartão de crédito)
-- ✅ Integração com Mercado Pago (PIX, boleto, cartão)
-- ✅ Webhooks para confirmação automática
-- ✅ Pagamento manual (admin confirma)
-- ✅ Sistema de assinaturas com renovação automática
+### 🎫 **Sistema de Tickets**
+- ✅ Tickets de suporte
+- ✅ Categorias personalizadas
+- ✅ Role de suporte configurável
+- ✅ Canal de logs
+- ✅ Notificações automáticas
+- ✅ Limite de tickets por usuário
+- ✅ Estatísticas completas
 
-### 🎭 Automação Discord
-- ✅ Roles automáticas para compradores
-- ✅ Roles temporárias para assinaturas
-- ✅ Criação de canais privados por compra
-- ✅ Notificações DM para compradores
-- ✅ Logs detalhados para admins
-- ✅ Alertas de estoque baixo
+### 🎨 **Personalização Visual**
+- ✅ **100% personalizável** - Todos os textos, cores e imagens
+- ✅ Interface interativa com botões e modais
+- ✅ Pré-visualização antes de salvar
+- ✅ Variáveis dinâmicas
+- ✅ Templates por sistema (Tickets, Anúncios, Catálogo, Compras)
 
-### 🎫 Sistema de Tickets
-- ✅ Criação de tickets com categorias e prioridades
-- ✅ Painel interativo para abertura de tickets
-- ✅ Sistema de assumir tickets por moderadores
-- ✅ Notificações automáticas para moderadores online
-- ✅ Canais privados para cada ticket
-- ✅ Estatísticas e tempo médio de resolução
-- ✅ Sistema de fechamento com logs
+### 📢 **Sistema de Anúncios**
+- ✅ Anúncios imediatos e agendados
+- ✅ Broadcast por DM
+- ✅ Filtro por roles
+- ✅ Histórico de anúncios
 
-### 📢 Anúncios e Notificações
-- ✅ Criação de anúncios com embeds personalizados
-- ✅ Agendamento automático de anúncios
-- ✅ Sistema de broadcast DM em massa
-- ✅ Targeting por roles específicas
-- ✅ Anúncios com imagens e cores customizáveis
-- ✅ Gerenciamento completo (criar, agendar, cancelar, listar)
+### 🤖 **Inteligência Artificial**
+- ✅ Chatbot integrado
+- ✅ Moderação automática
+- ✅ Assistente virtual
+- ✅ Integração com OpenAI/Anthropic
 
-### 🧠 Inteligência Artificial
-- ✅ Chat inteligente com contexto
-- ✅ Geração automática de conteúdo (anúncios, posts, emails)
-- ✅ Moderação automática de conteúdo
-- ✅ Assistente administrativo para tarefas complexas
-- ✅ Análise de sentimento
-- ✅ Sugestões de respostas para tickets
-- ✅ Estatísticas de uso e custos de IA
+### 🔧 **Automação**
+- ✅ Auto-roles para novos membros
+- ✅ Mensagens de boas-vindas
+- ✅ Limpeza automática de mensagens
+- ✅ Relatórios automáticos
 
-### 🎛️ Painel de Gerenciamento
-- ✅ Painel interativo com botões e navegação moderna
-- ✅ Interface unificada para todas as funcionalidades
-- ✅ Atalhos rápidos para ações comuns
-- ✅ Estatísticas em tempo real
-- ✅ Design moderno e intuitivo
+### ⭐ **Sistema de Avaliações**
+- ✅ Avaliação de produtos (1-5 estrelas)
+- ✅ Avaliação de vendedores/atendentes
+- ✅ Comentários e feedback
+- ✅ Rankings e estatísticas
+- ✅ Top 10 produtos e vendedores
+- ✅ Sistema de aprovação
+- ✅ Avaliações anônimas
 
-### 📊 Dashboard Web
-- ✅ Painel web com Next.js + Tailwind CSS
-- ✅ Estatísticas em tempo real
-- ✅ Histórico de transações
-- ✅ Gerenciamento de produtos via interface web
-- ✅ Visualização de métricas e relatórios
-
-### 🔧 Configuração
-- ✅ Multitenant (suporte para múltiplos servidores)
-- ✅ Configurações personalizadas por servidor
-- ✅ Setup automático via comando
-- ✅ Cores e mensagens customizáveis
+---
 
 ## 🚀 Instalação
 
 ### Pré-requisitos
-- Node.js 20+
-- Conta Discord Developer
-- Projeto Supabase
-- Conta Stripe e/ou Mercado Pago (opcional)
 
-### 1. Clone o repositório
+- Node.js 16.x ou superior
+- npm ou yarn
+- Conta no Supabase
+- Conta no Mercado Pago e/ou Stripe (opcional)
+- Bot do Discord criado
+
+### Passo 1: Clonar e Instalar Dependências
+
 ```bash
+# Clonar repositório
 git clone <url-do-repo>
-cd discord-sales-bot
-```
+cd "Sellify Bot"
 
-### 2. Instale as dependências
-```bash
-# Bot
+# Instalar dependências
 npm install
-
-# Dashboard (opcional)
-cd dashboard
-npm install
-cd ..
 ```
 
-### 3. Configure o Discord Bot
+### Passo 2: Configurar Variáveis de Ambiente
 
-1. Acesse [Discord Developer Portal](https://discord.com/developers/applications)
-2. Crie uma nova aplicação
-3. Vá em "Bot" e crie um bot
-4. Copie o token do bot
-5. Em "OAuth2" > "URL Generator":
-   - Selecione scope: `bot` e `applications.commands`
-   - Selecione permissões: `Administrator` (ou permissões específicas)
-6. Use a URL gerada para adicionar o bot ao seu servidor
+Crie um arquivo `.env` na raiz do projeto:
 
-### 4. Configure o Supabase
-
-1. Crie um projeto em [Supabase](https://supabase.com)
-2. Copie a URL do projeto e a chave `anon/public`
-3. No SQL Editor, execute o arquivo `supabase-schema.sql`
-4. Configure as políticas RLS conforme necessário
-
-### 5. Configure variáveis de ambiente
-
-Copie o arquivo `.env.example` para `.env`:
-```bash
-cp .env.example .env
-```
-
-Edite o arquivo `.env` com suas credenciais:
 ```env
 # Discord
-DISCORD_TOKEN=seu_token_aqui
-DISCORD_CLIENT_ID=seu_client_id_aqui
+DISCORD_TOKEN=seu_token_do_bot
+DISCORD_CLIENT_ID=id_do_cliente
+DISCORD_GUILD_ID=id_do_servidor_principal
 
 # Supabase
 SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_KEY=sua_chave_anon
-SUPABASE_SERVICE_KEY=sua_service_role_key
 
-# Stripe (opcional)
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+# Pagamentos (Opcional)
+MERCADO_PAGO_ACCESS_TOKEN=seu_token
+STRIPE_SECRET_KEY=sua_chave_secreta
+STRIPE_WEBHOOK_SECRET=seu_webhook_secret
 
-# Mercado Pago (opcional)
-MERCADOPAGO_ACCESS_TOKEN=seu_token
-
-# Webhook
-WEBHOOK_PORT=3000
-WEBHOOK_URL=https://seu-dominio.com
+# IA (Opcional)
+OPENAI_API_KEY=sua_chave_openai
+ANTHROPIC_API_KEY=sua_chave_anthropic
 ```
 
-### 6. Registre os comandos slash
+### Passo 3: Configurar Banco de Dados
+
+Execute os scripts SQL na pasta `database/migrations/` no Supabase:
 
 ```bash
-npm run deploy-commands
+# Ordem de execução:
+1. create_tables.sql
+2. create_customizations_table.sql
+3. create_reviews_table.sql
 ```
 
-### 7. Inicie o bot
+### Passo 4: Compilar e Executar
 
 ```bash
-# Desenvolvimento
+# Compilar TypeScript
+npm run build
+
+# Registrar comandos no Discord
+npm run deploy
+
+# Iniciar bot
+npm start
+
+# Modo desenvolvimento (auto-reload)
 npm run dev
+```
 
-# Produção
+---
+
+## ⚙️ Configuração Inicial
+
+### 1. Configurar Bot
+
+```bash
+/configurar setup
+```
+
+Isso criará automaticamente:
+- Categoria de vendas
+- Canal de logs
+- Roles necessárias
+
+### 2. Configurar Pagamentos
+
+```bash
+/configurar payment-set
+
+# Mercado Pago
+Provider: mercadopago
+Access Token: SEU_TOKEN
+
+# Stripe
+Provider: stripe
+Secret Key: SUA_SECRET_KEY
+Webhook Secret: SEU_WEBHOOK_SECRET
+```
+
+### 3. Configurar Tickets
+
+```bash
+/ticket config
+
+# Configure:
+📁 Categoria - Onde os tickets serão criados
+👥 Role de Suporte - Quem pode gerenciar
+📋 Canal de Logs - Registro de ações
+💬 Mensagem - Boas-vindas personalizada
+🔔 Notificações - Alertar moderadores
+📊 Limite - Tickets por usuário
+```
+
+### 4. Adicionar Produtos
+
+```bash
+/adicionar-produto
+
+# Preencha:
+- Nome do produto
+- Descrição
+- Preço
+- Estoque (opcional)
+- URL da imagem (opcional)
+- Role a dar (opcional)
+- Tipo: único ou assinatura
+```
+
+---
+
+## 📝 Comandos
+
+### Produtos e Vendas
+
+| Comando | Descrição | Permissão |
+|---------|-----------|-----------|
+| `/adicionar-produto` | Adicionar produto ao catálogo | Admin |
+| `/editar-produto [id]` | Editar produto existente | Admin |
+| `/remover-produto [id]` | Remover produto | Admin |
+| `/catalogo ver [página]` | Ver catálogo de produtos | Todos |
+| `/meus-pedidos` | Ver suas compras | Todos |
+| `/avaliar produto` | Avaliar produto comprado | Todos |
+
+### Cupons
+
+| Comando | Descrição | Permissão |
+|---------|-----------|-----------|
+| `/adicionar-cupom` | Criar cupom de desconto | Admin |
+
+### Avaliações
+
+| Comando | Descrição | Permissão |
+|---------|-----------|-----------|
+| `/avaliar produto` | Avaliar produto que você comprou | Todos |
+| `/avaliar vendedor [usuário] [categoria]` | Avaliar vendedor/atendente | Todos |
+
+### Tickets
+
+| Comando | Descrição | Permissão |
+|---------|-----------|-----------|
+| `/ticket abrir [assunto]` | Abrir ticket de suporte | Todos |
+| `/ticket listar` | Listar tickets | Admin |
+| `/ticket stats` | Estatísticas de tickets | Admin |
+| `/ticket config` | Configurar sistema de tickets | Admin |
+| `/ticket setup` | Personalizar aparência | Admin |
+| `/ticket painel [canal]` | Criar painel de tickets | Admin |
+
+### Anúncios
+
+| Comando | Descrição | Permissão |
+|---------|-----------|-----------|
+| `/anuncio criar [canal]` | Criar anúncio | Admin |
+| `/anuncio agendar` | Agendar anúncio | Admin |
+| `/anuncio listar` | Listar anúncios | Admin |
+| `/anuncio cancelar [id]` | Cancelar anúncio agendado | Admin |
+| `/anuncio broadcast` | Enviar DM em massa | Admin |
+| `/anuncio setup` | Personalizar aparência | Admin |
+
+### Configuração
+
+| Comando | Descrição | Permissão |
+|---------|-----------|-----------|
+| `/configurar view` | Ver configurações atuais | Admin |
+| `/configurar setup` | Configuração inicial | Admin |
+| `/configurar currency [moeda]` | Definir moeda | Admin |
+| `/configurar payment-set` | Configurar pagamento | Admin |
+| `/configurar payment-delete` | Remover configuração | Admin |
+
+### Personalização
+
+| Comando | Descrição | Permissão |
+|---------|-----------|-----------|
+| `/ticket setup` | Personalizar tickets | Admin |
+| `/anuncio setup` | Personalizar anúncios | Admin |
+| `/catalogo setup` | Personalizar catálogo | Admin |
+
+### Gerenciamento
+
+| Comando | Descrição | Permissão |
+|---------|-----------|-----------|
+| `/painel` | Painel de controle interativo | Admin |
+| `/estatisticas` | Estatísticas de vendas | Admin |
+
+### Inteligência Artificial
+
+| Comando | Descrição | Permissão |
+|---------|-----------|-----------|
+| `/ia chat [mensagem]` | Conversar com IA | Todos |
+| `/ia assistente` | Assistente virtual | Admin |
+| `/ia moderar [texto]` | Moderar conteúdo | Admin |
+
+---
+
+## 🎨 Sistema de Personalização
+
+O bot possui um sistema completo de personalização visual. Você pode customizar **TUDO** sem tocar em código!
+
+### Como Personalizar
+
+Execute o comando de setup do sistema que deseja personalizar:
+
+```bash
+# Personalizar Tickets
+/ticket setup
+
+# Personalizar Anúncios
+/anuncio setup
+
+# Personalizar Catálogo
+/catalogo setup
+```
+
+### O Que Pode Ser Personalizado
+
+#### 📝 Textos
+- Título do embed
+- Descrição
+- Mensagens personalizadas
+
+#### 🎨 Visual
+- Cor do embed (HEX)
+- Imagem grande (banner)
+- Thumbnail (ícone)
+
+#### 👤 Informações
+- Autor (nome, ícone, URL)
+- Rodapé (texto e ícone)
+- Timestamp
+
+#### 🏷️ Campos
+- Adicionar campos personalizados
+- Nome e valor configuráveis
+- Inline ou empilhados
+
+#### 🔘 Botões
+- Texto personalizado
+- Estilo (Primary, Secondary, Success, Danger)
+- Emoji customizado
+
+### Variáveis Dinâmicas
+
+Use variáveis para conteúdo dinâmico:
+
+#### Tickets
+- `{user}` - Usuário que abriu
+- `{ticket_id}` - ID do ticket
+- `{category}` - Categoria
+
+#### Anúncios
+- `{user}` - Criador do anúncio
+- `{date}` - Data de criação
+- `{server}` - Nome do servidor
+
+#### Catálogo
+- `{page}` - Página atual
+- `{total}` - Total de páginas
+- `{count}` - Número de produtos
+
+#### Compras
+- `{product_name}` - Nome do produto
+- `{product_price}` - Preço
+- `{user}` - Comprador
+
+### Exemplo de Uso
+
+```bash
+# 1. Executar comando
+/ticket setup
+
+# 2. Clicar nos botões para personalizar:
+📝 Título → "🎫 Suporte Premium 24/7"
+📄 Descrição → "Nossa equipe está pronta para ajudar!"
+🎨 Cor → #FFD700
+👤 Autor → "Equipe de Suporte" + logo.png
+🏷️ Campo → "⏰ Horário" | "24 horas por dia"
+📝 Rodapé → "Tempo médio de resposta: 5 minutos"
+🔘 Botão → "✨ Abrir Chamado VIP" (success)
+
+# 3. Pré-visualizar
+Clique em "👁️ Pré-visualizar"
+
+# 4. Salvar
+Clique em "💾 Salvar Tudo"
+```
+
+---
+
+## 🗄️ Banco de Dados
+
+### Tabelas Principais
+
+#### `products`
+Catálogo de produtos
+```sql
+- id (uuid)
+- guild_id (text)
+- name (text)
+- description (text)
+- price (numeric)
+- stock (integer)
+- type (text) - 'one_time' ou 'subscription'
+- role_id (text)
+- image_url (text)
+- is_active (boolean)
+```
+
+#### `transactions`
+Histórico de vendas
+```sql
+- id (uuid)
+- guild_id (text)
+- user_id (text)
+- product_id (uuid)
+- amount (numeric)
+- status (text)
+- payment_method (text)
+- payment_id (text)
+- created_at (timestamp)
+```
+
+#### `coupons`
+Cupons de desconto
+```sql
+- id (uuid)
+- guild_id (text)
+- code (text)
+- discount_type (text)
+- discount_value (numeric)
+- max_uses (integer)
+- current_uses (integer)
+- is_active (boolean)
+```
+
+#### `tickets`
+Sistema de tickets
+```sql
+- id (uuid)
+- guild_id (text)
+- user_id (text)
+- channel_id (text)
+- subject (text)
+- category (text)
+- priority (text)
+- status (text)
+- assigned_to (text)
+- created_at (timestamp)
+- closed_at (timestamp)
+```
+
+#### `ticket_config`
+Configurações de tickets
+```sql
+- guild_id (text)
+- ticket_category_id (text)
+- support_role_id (text)
+- log_channel_id (text)
+- welcome_message (text)
+- auto_notify_moderators (boolean)
+- max_open_tickets_per_user (integer)
+```
+
+#### `customizations`
+Personalizações visuais
+```sql
+- guild_id (text)
+- customization_type (text)
+- customization_data (jsonb)
+- created_at (timestamp)
+- updated_at (timestamp)
+```
+
+#### `announcements`
+Sistema de anúncios
+```sql
+- id (uuid)
+- guild_id (text)
+- created_by (text)
+- title (text)
+- content (text)
+- channel_id (text)
+- status (text)
+- scheduled_for (timestamp)
+```
+
+#### `automation_config`
+Configurações de automação
+```sql
+- guild_id (text)
+- config_type (text)
+- config_data (jsonb)
+- updated_at (timestamp)
+```
+
+#### `automation_tasks`
+Tarefas agendadas
+```sql
+- id (uuid)
+- guild_id (text)
+- task_type (text)
+- channel_id (text)
+- config (jsonb)
+- interval_hours (integer)
+- next_run (timestamp)
+- is_active (boolean)
+```
+
+#### `product_reviews`
+Avaliações de produtos
+```sql
+- id (uuid)
+- guild_id (text)
+- product_id (uuid)
+- user_id (text)
+- transaction_id (uuid)
+- rating (integer) - 1 a 5 estrelas
+- comment (text)
+- is_anonymous (boolean)
+- is_approved (boolean)
+- created_at (timestamp)
+```
+
+#### `seller_reviews`
+Avaliações de vendedores
+```sql
+- id (uuid)
+- guild_id (text)
+- seller_id (text)
+- reviewer_id (text)
+- ticket_id (uuid)
+- transaction_id (uuid)
+- rating (integer) - 1 a 5 estrelas
+- comment (text)
+- category (text) - support, sales, general
+- is_anonymous (boolean)
+- is_approved (boolean)
+- created_at (timestamp)
+```
+
+---
+
+## 🛠️ Funcionalidades Detalhadas
+
+### Sistema de Avaliações
+
+#### Avaliações de Produtos
+- ⭐ Clientes podem avaliar produtos comprados (1-5 estrelas)
+- 💬 Comentários opcionais
+- 👤 Opção de avaliação anônima
+- 📊 Estatísticas e rankings
+- 🏆 Top 10 produtos mais bem avaliados
+- ✅ Sistema de aprovação por moderadores
+
+#### Avaliações de Vendedores
+- ⭐ Avaliação de atendentes e vendedores (1-5 estrelas)
+- 📝 Feedback sobre suporte, vendas ou atendimento geral
+- 🎫 Vinculado a tickets e transações
+- 🌟 Ranking de melhores vendedores
+- 💼 Categorias: Suporte, Vendas, Geral
+
+#### Como Funciona
+
+**Para Clientes:**
+```bash
+# Avaliar produto após compra
+/avaliar produto
+→ Selecione produto
+→ Dê nota de 1-5 estrelas
+→ Adicione comentário (opcional)
+
+# Avaliar vendedor/atendente
+/avaliar vendedor @vendedor categoria:suporte
+→ Dê nota de 1-5 estrelas
+→ Escreva feedback
+```
+
+**Para Administradores:**
+```bash
+# Acessar painel de avaliações
+/painel → ⭐ Avaliações
+
+# Ver avaliações de produtos
+→ 🛍️ Produtos
+
+# Ver avaliações de vendedores
+→ 👤 Vendedores
+
+# Ver rankings
+→ 🏆 Top Produtos
+→ 🌟 Top Vendedores
+```
+
+### Sistema de Pagamentos
+
+#### Mercado Pago
+- ✅ PIX instantâneo
+- ✅ Boleto bancário
+- ✅ Cartão de crédito
+- ✅ Webhooks automáticos
+- ✅ Confirmação em tempo real
+
+#### Stripe
+- ✅ Cartão de crédito internacional
+- ✅ Assinaturas recorrentes
+- ✅ Gestão de cancelamentos
+- ✅ Webhooks automáticos
+
+### Sistema de Entrega
+
+#### Produtos Digitais
+- Entrega automática via DM
+- Canal privado temporário
+- Role automática (se configurada)
+
+#### Assinaturas
+- Renovação automática mensal
+- Role temporária
+- Notificações de renovação
+- Cancelamento automático se falhar
+
+### Sistema de Logs
+
+Todos os eventos são registrados:
+- 📝 Vendas completas
+- ❌ Vendas canceladas
+- 🎫 Tickets abertos/fechados
+- 📢 Anúncios enviados
+- ⚙️ Configurações alteradas
+- 🔄 Assinaturas renovadas
+
+### Sistema de Automação
+
+#### Auto-Roles
+Atribuir role automaticamente para novos membros
+
+```bash
+/painel → Automações → Auto-Roles
+```
+
+#### Mensagens de Boas-vindas
+Enviar mensagem quando alguém entra
+
+```bash
+/painel → Automações → Boas-vindas
+```
+
+#### Limpeza Automática
+Deletar mensagens antigas automaticamente
+
+```bash
+/painel → Automações → Tarefas → Limpeza
+```
+
+#### Relatórios Automáticos
+Relatórios de vendas automáticos (diário/semanal/mensal)
+
+```bash
+/painel → Automações → Tarefas → Relatórios
+```
+
+---
+
+## 📊 Estatísticas
+
+### Ver Estatísticas de Vendas
+
+```bash
+/estatisticas
+```
+
+**Você verá:**
+- 💰 Total de vendas
+- 🛒 Número de transações
+- 📈 Ticket médio
+- 👥 Top compradores
+- 📦 Produtos mais vendidos
+- 📅 Vendas por período
+
+### Ver Estatísticas de Tickets
+
+```bash
+/ticket stats
+```
+
+**Você verá:**
+- 📈 Total de tickets
+- 🟢 Tickets abertos
+- 🟡 Em atendimento
+- 🔴 Fechados
+- ⏱️ Tempo médio de resolução
+- 📊 Taxa de resolução
+
+---
+
+## 🎯 Fluxo de Uso Típico
+
+### Para Administradores
+
+```bash
+# 1. Configuração Inicial
+/configurar setup
+
+# 2. Configurar Pagamento
+/configurar payment-set
+
+# 3. Adicionar Produtos
+/adicionar-produto
+
+# 4. Configurar Tickets
+/ticket config
+
+# 5. Personalizar Visual (opcional)
+/ticket setup
+/catalogo setup
+
+# 6. Criar Painéis
+/ticket painel canal:#suporte
+/catalogo ver
+
+# 7. Gerenciar
+/painel (painel interativo)
+/estatisticas (ver vendas)
+```
+
+### Para Usuários
+
+```bash
+# 1. Ver Produtos
+/catalogo ver
+
+# 2. Comprar
+(Clique no botão do produto no catálogo)
+
+# 3. Abrir Ticket
+/ticket abrir assunto:Dúvida
+
+# 4. Ver Compras
+/meus-pedidos
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Bot não responde
+
+**Causa:** Token inválido ou bot offline
+
+**Solução:**
+```bash
+# Verificar .env
+DISCORD_TOKEN=seu_token_correto
+
+# Reiniciar bot
+npm start
+```
+
+### Erro ao adicionar produto
+
+**Causa:** Tabelas não criadas no Supabase
+
+**Solução:**
+```bash
+# Execute os scripts SQL no Supabase
+database/migrations/create_tables.sql
+```
+
+### Pagamento não funciona
+
+**Causa:** Credenciais não configuradas
+
+**Solução:**
+```bash
+/configurar payment-set
+# Configure Mercado Pago ou Stripe
+```
+
+### Tickets não são criados na categoria
+
+**Causa:** Categoria não configurada
+
+**Solução:**
+```bash
+/ticket config
+# Configure a categoria desejada
+```
+
+### Customização não aparece
+
+**Causa:** Não salvou as alterações
+
+**Solução:**
+```bash
+# Sempre clicar em "💾 Salvar Tudo" após personalizar
+```
+
+### Erro "Cannot find module"
+
+**Causa:** Não compilou após mudanças
+
+**Solução:**
+```bash
 npm run build
 npm start
 ```
 
-### 8. Inicie o dashboard (opcional)
+---
 
-```bash
-cd dashboard
-cp .env.example .env
-# Configure as variáveis
-npm run dev
-```
+## 🚨 Segurança
 
-## 🐳 Deploy com Docker
+### Boas Práticas
 
-### Build e run
-```bash
-docker-compose up -d
-```
+✅ **NUNCA** commite o arquivo `.env`
+✅ Use variáveis de ambiente para credenciais
+✅ Configure permissões corretas no Discord
+✅ Use roles específicas para admin
+✅ Ative logs de segurança
+✅ Monitore transações suspeitas
 
-### Logs
-```bash
-docker-compose logs -f
-```
+### Permissões Necessárias do Bot
 
-### Stop
-```bash
-docker-compose down
-```
-
-## 📝 Comandos Disponíveis
-
-### 🎛️ Painel de Gerenciamento
-- `/panel` - Painel interativo com todas as funcionalidades
-
-### 🛍️ Vendas e Produtos
-- `/addproduct` - Adicionar novo produto
-- `/editproduct` - Editar produto existente
-- `/removeproduct` - Remover produto
-- `/addcoupon` - Criar cupom de desconto
-- `/catalogo` - Ver catálogo de produtos
-- `/myorders` - Ver suas compras (usuário)
-- `/stats` - Ver estatísticas de vendas
-
-### 🎫 Sistema de Tickets
-- `/ticket abrir` - Abrir novo ticket de suporte
-- `/ticket listar` - Listar tickets (moderadores)
-- `/ticket stats` - Ver estatísticas de tickets
-- `/ticket setup` - Configurar sistema de tickets
-- `/ticket painel` - Criar painel público de tickets
-
-### 📢 Anúncios
-- `/anuncio criar` - Criar e enviar anúncio imediatamente
-- `/anuncio agendar` - Agendar anúncio para data futura
-- `/anuncio listar` - Listar anúncios criados
-- `/anuncio cancelar` - Cancelar anúncio agendado
-- `/anuncio broadcast` - Enviar DM em massa (use com cuidado)
-
-### 🧠 Inteligência Artificial
-- `/ia chat` - Conversar com IA
-- `/ia gerar` - Gerar conteúdo automaticamente
-- `/ia moderar` - Analisar conteúdo com moderação IA
-- `/ia assistente` - Assistente para tarefas administrativas
-- `/ia stats` - Ver estatísticas de uso de IA
-
-### ⚙️ Configuração
-- `/config` - Configurar bot no servidor
-
-## 🔧 Configuração do Servidor
-
-### Setup Automático
-```
-/config setup
-```
-Este comando criará automaticamente:
-- Categoria de vendas
-- Canal de logs
-- Configurações padrão
-
-### Configurações Manuais
-```
-/config logchannel #canal - Define canal de logs
-/config category categoria - Define categoria de vendas
-/config color #5865F2 - Define cor dos embeds
-/config currency BRL - Define moeda
-/config payment stripe:true - Ativa Stripe
-```
-
-## 💡 Exemplos de Uso
-
-### Criar um Produto
-```
-/addproduct
-  nome: Curso de Discord.js
-  descricao: Aprenda a criar bots incríveis
-  preco: 97.00
-  tipo: único
-  imagem: https://example.com/curso.png
-  role: @Aluno
-```
-
-### Criar uma Assinatura
-```
-/addproduct
-  nome: Assinatura Premium
-  descricao: Acesso VIP por 30 dias
-  preco: 29.90
-  tipo: assinatura
-  role: @VIP
-```
-
-### Criar Cupom
-```
-/addcoupon
-  codigo: PROMO10
-  desconto_percentual: 10
-  max_usos: 100
-  dias_validade: 30
-```
-
-### Configurar Sistema de Tickets
-```
-/ticket setup
-  categoria: @Tickets
-  role_suporte: @Moderador
-  canal_logs: #logs-tickets
-  notificar_mods: true
-```
-
-### Criar Painel de Tickets
-```
-/ticket painel
-  canal: #suporte
-```
-
-### Criar Anúncio
-```
-/anuncio criar
-  titulo: 🎉 Nova Funcionalidade!
-  conteudo: Estamos felizes em anunciar nossa nova feature de IA!
-  canal: #anuncios
-  mencionar_role: @everyone
-  cor: #FF6B6B
-```
-
-### Agendar Anúncio
-```
-/anuncio agendar
-  titulo: Promoção de Final de Ano
-  conteudo: Aproveite 50% de desconto em todos os produtos!
-  canal: #anuncios
-  data_hora: 31/12/2024 23:59
-```
-
-### Gerar Conteúdo com IA
-```
-/ia gerar
-  tipo: Anúncio
-  especificacoes: Anúncio para um curso de programação Python, público-alvo iniciantes, tom entusiasmado
-```
-
-### Chat com IA
-```
-/ia chat
-  mensagem: Como posso melhorar o engajamento no meu servidor Discord?
-```
-
-### Moderar Conteúdo
-```
-/ia moderar
-  texto: [texto para analisar]
-```
-
-## 🔄 Webhooks
-
-### Configurar Stripe Webhook
-
-1. Acesse [Stripe Dashboard](https://dashboard.stripe.com/webhooks)
-2. Adicione endpoint: `https://seu-dominio.com/webhooks/stripe`
-3. Eventos necessários:
-   - `checkout.session.completed`
-   - `payment_intent.succeeded`
-   - `invoice.paid`
-   - `customer.subscription.deleted`
-4. Copie o webhook secret para `.env`
-
-### Configurar Mercado Pago Webhook
-
-1. Acesse configurações da aplicação Mercado Pago
-2. Configure URL de notificação: `https://seu-dominio.com/webhooks/mercadopago`
-3. Eventos: `payment`
-
-## 🧪 Testes
-
-### Simular Compra (Desenvolvimento)
-Execute o arquivo de teste:
-```bash
-npm run test:purchase
-```
-
-### Testar Webhooks Localmente
-Use [ngrok](https://ngrok.com/) para expor seu servidor local:
-```bash
-ngrok http 3000
-```
-Use a URL gerada nos webhooks do Stripe/Mercado Pago.
-
-## 📊 Estrutura do Projeto
-
-```
-discord-sales-bot/
-├── src/
-│   ├── commands/        # Comandos slash
-│   │   ├── addproduct.ts
-│   │   ├── catalogo.ts
-│   │   ├── config.ts
-│   │   └── ...
-│   ├── events/          # Eventos Discord
-│   │   ├── ready.ts
-│   │   ├── interactionCreate.ts
-│   │   └── guildCreate.ts
-│   ├── utils/           # Utilidades
-│   │   ├── supabase.ts
-│   │   ├── payments.ts
-│   │   ├── roleManager.ts
-│   │   ├── channelManager.ts
-│   │   └── logger.ts
-│   ├── webhooks/        # Handlers de webhooks
-│   │   ├── server.ts
-│   │   ├── stripeWebhook.ts
-│   │   ├── mercadoPagoWebhook.ts
-│   │   └── deliveryHandler.ts
-│   ├── types/           # Tipos TypeScript
-│   │   └── index.ts
-│   ├── index.ts         # Arquivo principal
-│   └── deploy-commands.ts
-├── dashboard/           # Painel web Next.js
-│   ├── app/
-│   ├── components/
-│   └── ...
-├── supabase-schema.sql  # Schema do banco
-├── Dockerfile
-├── docker-compose.yml
-├── package.json
-└── README.md
-```
-
-## 🛡️ Segurança
-
-- ✅ Service role key do Supabase em variável de ambiente
-- ✅ Validação de webhooks com assinaturas
-- ✅ Row Level Security (RLS) no Supabase
-- ✅ Roles temporárias com expiração automática
-- ✅ Logs detalhados de todas as ações
-
-## 🔍 Troubleshooting
-
-### Bot não conecta
-- Verifique se o token está correto
-- Confirme que todas as intents necessárias estão habilitadas
-
-### Comandos não aparecem
-- Execute `npm run deploy-commands`
-- Aguarde até 1 hora para propagação global
-- Force comandos por servidor adicionando GUILD_ID
-
-### Webhooks não funcionam
-- Verifique se a URL está acessível publicamente
-- Confirme o webhook secret no .env
-- Verifique logs do servidor de webhooks
-
-### Pagamentos não confirmam
-- Teste webhooks localmente com ngrok
-- Verifique logs do Stripe/Mercado Pago
-- Confirme que os eventos corretos estão configurados
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Sinta-se à vontade para:
-- Reportar bugs
-- Sugerir novas funcionalidades
-- Enviar pull requests
-- Melhorar documentação
-
-## 📄 Licença
-
-MIT License - veja LICENSE para detalhes.
-
-## 💬 Suporte
-
-- Documentação: Este README
-- Issues: Use o GitHub Issues
-- Discord: [Seu servidor de suporte]
-
-## 🎯 Roadmap
-
-- [x] Sistema de tickets ✅
-- [x] Sistema de anúncios ✅
-- [x] Painel de gerenciamento interativo ✅
-- [x] Integração com IA (OpenAI) ✅
-- [x] Sistema de notificações automáticas ✅
-- [ ] Sistema de afiliados
-- [ ] Integração com PayPal
-- [ ] Painel de analytics avançado
-- [ ] API REST para integrações
-- [ ] Sistema de gamificação
-- [ ] Multi-idioma
-- [ ] Sistema de reviews e avaliações de produtos
-- [ ] Integração com mais provedores de pagamento
-- [ ] Sistema de cashback e rewards
-
-## 📚 Recursos Adicionais
-
-- [Discord.js Guide](https://discordjs.guide/)
-- [Supabase Docs](https://supabase.com/docs)
-- [Stripe API](https://stripe.com/docs/api)
-- [Mercado Pago API](https://www.mercadopago.com.br/developers)
+- ✅ Gerenciar Canais
+- ✅ Gerenciar Roles
+- ✅ Gerenciar Mensagens
+- ✅ Enviar Mensagens
+- ✅ Incorporar Links
+- ✅ Adicionar Reações
+- ✅ Ler Histórico de Mensagens
 
 ---
 
-Desenvolvido com ❤️ para a comunidade Discord
+## 📈 Atualizações
+
+### Versão Atual: 1.0.0
+
+**Recursos:**
+- ✅ Sistema completo de vendas
+- ✅ Tickets de suporte
+- ✅ Personalização visual 100%
+- ✅ Cupons de desconto
+- ✅ Assinaturas
+- ✅ Automação
+- ✅ IA integrada
+- ✅ Anúncios programados
+
+---
+
+## 💡 Dicas e Truques
+
+### 1. Use Variáveis para Dinamismo
+```
+Rodapé: "Enviado por {user} em {date}"
+→ Atualiza automaticamente!
+```
+
+### 2. Pré-visualize Sempre
+```
+Antes de salvar, use "👁️ Pré-visualizar"
+→ Veja exatamente como ficará
+```
+
+### 3. Organize com Categorias
+```
+Crie categorias no Discord:
+📦 PRODUTOS
+🎫 TICKETS
+📊 LOGS
+→ Mantém tudo organizado
+```
+
+### 4. Use Cupons Estrategicamente
+```
+PRIMEIRA-COMPRA → 10% de desconto
+VIP2024 → 20% de desconto
+NATAL → 30% de desconto (limitado)
+```
+
+### 5. Configure Logs
+```
+Canal de logs mostra TUDO que acontece
+→ Auditoria completa
+```
+
+### 6. Use o Painel Interativo
+```
+/painel
+→ Acesso rápido a tudo
+```
+
+---
+
+## 🆘 Suporte
+
+### Documentação
+- Todos os comandos possuem descrições detalhadas
+- Use `/comando --help` para mais informações
+
+### Comunidade
+- Abra issues no GitHub para bugs
+- Pull requests são bem-vindos!
+
+---
+
+## 📜 Licença
+
+Este projeto é de código aberto. Use, modifique e distribua livremente.
+
+---
+
+## 🎉 Agradecimentos
+
+Desenvolvido com ❤️ para facilitar vendas no Discord.
+
+**Tecnologias utilizadas:**
+- Discord.js
+- TypeScript
+- Supabase
+- Mercado Pago API
+- Stripe API
+- OpenAI API
+
+---
+
+**🚀 Pronto para vender? Configure seu bot agora!**
+
+```bash
+npm install
+npm run build
+npm run deploy
+npm start
+```
+
+**💎 Boa sorte com suas vendas!**

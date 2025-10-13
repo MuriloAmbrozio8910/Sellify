@@ -26,7 +26,7 @@ import {
 import { createPaymentLink, formatCurrency } from '../utils/payments';
 import { TransactionStatus, ProductType } from '../types';
 import { createProductDetailEmbed } from '../commands/catalogo';
-import { confirmDelete } from '../commands/removeproduct';
+import { confirmDelete } from '../commands/remover-produto';
 import { addTemporaryRole } from '../utils/roleManager';
 import { createPrivateChannel, sendTransactionLog } from '../utils/channelManager';
 import { notifyBuyerPurchase, notifyAdminPurchase } from '../utils/logger';
@@ -46,6 +46,10 @@ import {
   handleCustomizationButton,
   handleCustomizationModal
 } from './customizationHandlers';
+import {
+  handleTicketConfigButton,
+  handleTicketConfigModal
+} from './ticketConfigHandlers';
 import {
   showAddProductModal,
   handleAddProductModalSubmit,
@@ -126,8 +130,12 @@ async function handleButton(interaction: ButtonInteraction) {
   const customId = interaction.customId;
 
   try {
+    // Botões de configuração de tickets
+    if (customId.startsWith('config_ticket_')) {
+      await handleTicketConfigButton(interaction);
+    }
     // Botões de customização
-    if (customId.startsWith('customize_')) {
+    else if (customId.startsWith('customize_')) {
       await handleCustomizationButton(interaction);
     }
     // Painéis principais e todos os botões dos sub-painéis
@@ -245,6 +253,12 @@ async function handleSelectMenu(interaction: StringSelectMenuInteraction) {
     else if (customId === 'select_payment_method') {
       await handlePaymentMethodSelection(interaction);
     }
+    else if (customId === 'select_product_to_review') {
+      const [productId, transactionId] = interaction.values[0].split('|');
+      const { showReviewProductModal } = await import('./reviewHandlers');
+      const modal = showReviewProductModal(interaction, productId, transactionId);
+      await interaction.showModal(modal);
+    }
   } catch (error) {
     logger.error(`Erro ao processar menu: ${error}`);
     
@@ -310,6 +324,19 @@ async function handleModal(interaction: any) {
     // Modais de customização
     else if (customId.startsWith('customize_modal_')) {
       await handleCustomizationModal(interaction);
+    }
+    // Modais de configuração de tickets
+    else if (customId.startsWith('modal_config_ticket_')) {
+      await handleTicketConfigModal(interaction);
+    }
+    // Modais de avaliação
+    else if (customId.startsWith('review_product_modal_')) {
+      const { handleProductReviewModal } = await import('./reviewHandlers');
+      await handleProductReviewModal(interaction);
+    }
+    else if (customId.startsWith('review_seller_modal_')) {
+      const { handleSellerReviewModal } = await import('./reviewHandlers');
+      await handleSellerReviewModal(interaction);
     }
   } catch (error) {
     logger.error(`Erro ao processar modal: ${error}`);

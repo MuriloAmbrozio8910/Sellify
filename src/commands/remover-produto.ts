@@ -15,7 +15,7 @@ import { getProductById, deleteProduct } from '../utils/supabase';
 import { logger } from '../utils/logger';
 
 export const data = new SlashCommandBuilder()
-  .setName('removeproduct')
+  .setName('remover-produto')
   .setDescription('Remover um produto do catálogo')
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .addStringOption(option =>

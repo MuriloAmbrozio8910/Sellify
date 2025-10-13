@@ -43,6 +43,10 @@ export async function handlePanelButton(interaction: ButtonInteraction) {
   else if (customId === 'panel_coupons') {
     await handleCouponsPanel(interaction);
   }
+  else if (customId === 'panel_reviews') {
+    const { handleReviewsPanel } = await import('./reviewHandlers');
+    await handleReviewsPanel(interaction);
+  }
   else if (customId === 'panel_stats') {
     await handleStatsPanel(interaction);
   }
@@ -119,6 +123,23 @@ export async function handlePanelButton(interaction: ButtonInteraction) {
   }
   else if (customId === 'announcements_scheduled') {
     await handleAnnouncementsScheduled(interaction);
+  }
+  // Botões de Avaliações
+  else if (customId === 'reviews_products') {
+    const { handleProductReviews } = await import('./reviewHandlers');
+    await handleProductReviews(interaction);
+  }
+  else if (customId === 'reviews_sellers') {
+    const { handleSellerReviews } = await import('./reviewHandlers');
+    await handleSellerReviews(interaction);
+  }
+  else if (customId === 'reviews_top_products') {
+    const { handleTopProducts } = await import('./reviewHandlers');
+    await handleTopProducts(interaction);
+  }
+  else if (customId === 'reviews_top_sellers') {
+    const { handleTopSellers } = await import('./reviewHandlers');
+    await handleTopSellers(interaction);
   }
   // Botões de Automações
   else if (customId === 'automations_roles') {

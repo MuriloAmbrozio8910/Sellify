@@ -32,7 +32,7 @@ import { createSalesCategory, createLogChannel } from '../utils/channelManager';
 import { logger } from '../utils/logger';
 
 export const data = new SlashCommandBuilder()
-  .setName('config')
+  .setName('configurar')
   .setDescription('Configurar o bot de vendas')
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .addSubcommand(subcommand =>

@@ -12,7 +12,7 @@ import { formatCurrency } from '../utils/payments';
 import { logger } from '../utils/logger';
 
 export const data = new SlashCommandBuilder()
-  .setName('myorders')
+  .setName('meus-pedidos')
   .setDescription('Ver suas compras neste servidor');
 
 export async function execute(interaction: ChatInputCommandInteraction) {
