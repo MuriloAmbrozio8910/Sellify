@@ -43,6 +43,10 @@ import {
   handleTaskReportsModal
 } from './panelHandlers';
 import {
+  handleCustomizationButton,
+  handleCustomizationModal
+} from './customizationHandlers';
+import {
   showAddProductModal,
   handleAddProductModalSubmit,
   handleEditProductModalSubmit,
@@ -122,8 +126,12 @@ async function handleButton(interaction: ButtonInteraction) {
   const customId = interaction.customId;
 
   try {
+    // Botões de customização
+    if (customId.startsWith('customize_')) {
+      await handleCustomizationButton(interaction);
+    }
     // Painéis principais e todos os botões dos sub-painéis
-    if (customId.startsWith('panel_') || 
+    else if (customId.startsWith('panel_') || 
         customId.startsWith('products_') ||
         customId.startsWith('coupons_') ||
         customId.startsWith('sales_') ||
@@ -298,6 +306,10 @@ async function handleModal(interaction: any) {
     // Modal de relatórios
     else if (customId === 'task_reports_modal') {
       await handleTaskReportsModal(interaction);
+    }
+    // Modais de customização
+    else if (customId.startsWith('customize_modal_')) {
+      await handleCustomizationModal(interaction);
     }
   } catch (error) {
     logger.error(`Erro ao processar modal: ${error}`);

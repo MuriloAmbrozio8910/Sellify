@@ -10,7 +10,8 @@ import {
   ButtonBuilder,
   ButtonStyle,
   StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder
+  StringSelectMenuOptionBuilder,
+  PermissionFlagsBits
 } from 'discord.js';
 import { getActiveProducts } from '../utils/supabase';
 import { Product } from '../types';
@@ -21,16 +22,34 @@ const PRODUCTS_PER_PAGE = 5;
 
 export const data = new SlashCommandBuilder()
   .setName('catalogo')
-  .setDescription('Ver o catálogo de produtos disponíveis')
-  .addIntegerOption(option =>
-    option
-      .setName('pagina')
-      .setDescription('Número da página')
-      .setRequired(false)
-      .setMinValue(1)
+  .setDescription('🛒 Sistema de catálogo de produtos')
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('ver')
+      .setDescription('Ver o catálogo de produtos disponíveis')
+      .addIntegerOption(option =>
+        option
+          .setName('pagina')
+          .setDescription('Número da página')
+          .setRequired(false)
+          .setMinValue(1)
+      )
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('setup')
+      .setDescription('🎨 Personalizar aparência do catálogo')
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
+  const subcommand = interaction.options.getSubcommand();
+
+  if (subcommand === 'setup') {
+    await handleCatalogSetup(interaction);
+    return;
+  }
+
+  // Subcomando 'ver' - código original
   try {
     await interaction.deferReply();
 
@@ -175,4 +194,89 @@ export function createProductDetailEmbed(product: Product): EmbedBuilder {
   }
 
   return embed;
+}
+
+async function handleCatalogSetup(interaction: ChatInputCommandInteraction) {
+  // Verificar permissão
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+    await interaction.reply({
+      content: '❌ Apenas administradores podem personalizar o catálogo.',
+      ephemeral: true
+    });
+    return;
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor('#3498DB')
+    .setTitle('🎨 Painel de Personalização - Catálogo')
+    .setDescription(
+      'Personalize completamente a aparência do seu catálogo de produtos.\n\n' +
+      '**Use os botões abaixo para customizar:**'
+    )
+    .addFields(
+      { name: '🎨 Visual', value: 'Título, descrição, cores', inline: true },
+      { name: '📝 Rodapé', value: 'Texto do rodapé com variáveis', inline: true },
+      { name: '🔳 Thumbnail', value: 'Logo ou imagem pequena', inline: true },
+      { name: '🔘 Botões', value: 'Personalizar botões de navegação', inline: true },
+      { name: '📊 Layout', value: 'Produtos por página', inline: true },
+      { name: '🎯 Variáveis', value: '{page}, {total}, {count}', inline: true }
+    )
+    .setFooter({ text: 'Sistema de Personalização Dinâmica' })
+    .setTimestamp();
+
+  const row1 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('customize_catalog_title')
+        .setLabel('Título')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📝'),
+      new ButtonBuilder()
+        .setCustomId('customize_catalog_description')
+        .setLabel('Descrição')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📄'),
+      new ButtonBuilder()
+        .setCustomId('customize_catalog_color')
+        .setLabel('Cor')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🎨')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('customize_catalog_footer')
+        .setLabel('Rodapé')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📝'),
+      new ButtonBuilder()
+        .setCustomId('customize_catalog_thumbnail')
+        .setLabel('Thumbnail')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🔳'),
+      new ButtonBuilder()
+        .setCustomId('customize_catalog_buttons')
+        .setLabel('Botões')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🔘')
+    );
+
+  const row3 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('customize_catalog_preview')
+        .setLabel('👁️ Pré-visualizar')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('customize_catalog_save')
+        .setLabel('💾 Salvar Tudo')
+        .setStyle(ButtonStyle.Success)
+    );
+
+  await interaction.reply({
+    embeds: [embed],
+    components: [row1, row2, row3],
+    ephemeral: true
+  });
 }

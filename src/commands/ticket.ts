@@ -77,29 +77,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName('setup')
-      .setDescription('Configurar sistema de tickets (apenas administradores)')
-      .addChannelOption(option =>
-        option
-          .setName('categoria')
-          .setDescription('Categoria onde tickets serão criados')
-          .addChannelTypes(ChannelType.GuildCategory)
-      )
-      .addRoleOption(option =>
-        option
-          .setName('role_suporte')
-          .setDescription('Role de suporte/moderadores')
-      )
-      .addChannelOption(option =>
-        option
-          .setName('canal_logs')
-          .setDescription('Canal para logs de tickets')
-          .addChannelTypes(ChannelType.GuildText)
-      )
-      .addBooleanOption(option =>
-        option
-          .setName('notificar_mods')
-          .setDescription('Notificar moderadores automaticamente?')
-      )
+      .setDescription('🎨 Painel de personalização completa do sistema de tickets')
   )
   .addSubcommand(subcommand =>
     subcommand
@@ -275,47 +253,109 @@ async function handleSetupTickets(interaction: ChatInputCommandInteraction) {
   // Verificar permissão
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({
-      content: '❌ Apenas administradores podem configurar o sistema de tickets.',
+      content: '❌ Apenas administradores podem personalizar o sistema de tickets.',
       ephemeral: true
     });
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  // Abrir painel de customização visual
+  const embed = new EmbedBuilder()
+    .setColor('#5865F2')
+    .setTitle('🎨 Painel de Personalização - Sistema de Tickets')
+    .setDescription(
+      'Personalize completamente a aparência e configurações do sistema de tickets.\n\n' +
+      '**Use os botões abaixo para customizar:**'
+    )
+    .addFields(
+      { name: '🎨 Visual', value: 'Título, descrição, cores, imagens', inline: true },
+      { name: '⚙️ Configurações', value: 'Canais, roles, notificações', inline: true },
+      { name: '🏷️ Campos', value: 'Adicionar/editar campos personalizados', inline: true },
+      { name: '🔘 Botões', value: 'Personalizar texto dos botões', inline: true },
+      { name: '👤 Autor', value: 'Definir autor do embed', inline: true },
+      { name: '📝 Rodapé', value: 'Personalizar rodapé', inline: true }
+    )
+    .setFooter({ text: 'Sistema de Personalização Dinâmica' })
+    .setTimestamp();
 
-  const category = interaction.options.getChannel('categoria');
-  const supportRole = interaction.options.getRole('role_suporte');
-  const logChannel = interaction.options.getChannel('canal_logs');
-  const notifyMods = interaction.options.getBoolean('notificar_mods');
+  const row1 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('customize_ticket_title')
+        .setLabel('Título')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📝'),
+      new ButtonBuilder()
+        .setCustomId('customize_ticket_description')
+        .setLabel('Descrição')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📄'),
+      new ButtonBuilder()
+        .setCustomId('customize_ticket_color')
+        .setLabel('Cor')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🎨')
+    );
 
-  try {
-    const config: any = {};
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('customize_ticket_author')
+        .setLabel('Autor')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('👤'),
+      new ButtonBuilder()
+        .setCustomId('customize_ticket_fields')
+        .setLabel('Campos')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🏷️'),
+      new ButtonBuilder()
+        .setCustomId('customize_ticket_footer')
+        .setLabel('Rodapé')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📝')
+    );
 
-    if (category) config.ticket_category_id = category.id;
-    if (supportRole) config.support_role_id = supportRole.id;
-    if (logChannel) config.log_channel_id = logChannel.id;
-    if (notifyMods !== null) config.auto_notify_moderators = notifyMods;
+  const row3 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('customize_ticket_image')
+        .setLabel('Imagem')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🖼️'),
+      new ButtonBuilder()
+        .setCustomId('customize_ticket_thumbnail')
+        .setLabel('Thumbnail')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🔳'),
+      new ButtonBuilder()
+        .setCustomId('customize_ticket_buttons')
+        .setLabel('Botões')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🔘')
+    );
 
-    await upsertTicketConfig(interaction.guildId!, config);
+  const row4 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('customize_ticket_config')
+        .setLabel('⚙️ Configurações Gerais')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('customize_ticket_preview')
+        .setLabel('👁️ Pré-visualizar')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('customize_ticket_save')
+        .setLabel('💾 Salvar Tudo')
+        .setStyle(ButtonStyle.Success)
+    );
 
-    const embed = new EmbedBuilder()
-      .setColor('#00FF00')
-      .setTitle('✅ Sistema de Tickets Configurado')
-      .setDescription('As configurações foram salvas com sucesso!')
-      .addFields(
-        category ? { name: '📁 Categoria', value: category.toString(), inline: true } : { name: '📁 Categoria', value: 'Não alterada', inline: true },
-        supportRole ? { name: '👥 Role de Suporte', value: supportRole.toString(), inline: true } : { name: '👥 Role de Suporte', value: 'Não alterada', inline: true },
-        logChannel ? { name: '📋 Canal de Logs', value: logChannel.toString(), inline: true } : { name: '📋 Canal de Logs', value: 'Não alterado', inline: true },
-        notifyMods !== null ? { name: '🔔 Notificar Moderadores', value: notifyMods ? '✅ Sim' : '❌ Não', inline: true } : { name: '🔔 Notificar Moderadores', value: 'Não alterado', inline: true }
-      )
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [embed] });
-  } catch (error: any) {
-    await interaction.editReply({
-      content: `❌ ${error.message || 'Erro ao configurar sistema de tickets.'}`
-    });
-  }
+  await interaction.reply({
+    embeds: [embed],
+    components: [row1, row2, row3, row4],
+    ephemeral: true
+  });
 }
 
 async function handleCreatePanel(interaction: ChatInputCommandInteraction) {

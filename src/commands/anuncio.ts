@@ -116,6 +116,11 @@ export const data = new SlashCommandBuilder()
           .setName('role_alvo')
           .setDescription('Enviar apenas para membros com esta role (deixe vazio para todos)')
       )
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('setup')
+      .setDescription('🎨 Personalizar aparência dos anúncios')
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -136,6 +141,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       break;
     case 'broadcast':
       await handleBroadcast(interaction);
+      break;
+    case 'setup':
+      await handleSetupAnnouncement(interaction);
       break;
   }
 }
@@ -312,4 +320,103 @@ async function handleBroadcast(interaction: ChatInputCommandInteraction) {
   });
 
   // Nota: O handler do botão será implementado no interactionCreate
+}
+
+async function handleSetupAnnouncement(interaction: ChatInputCommandInteraction) {
+  // Verificar permissão
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+    await interaction.reply({
+      content: '❌ Apenas administradores podem personalizar anúncios.',
+      ephemeral: true
+    });
+    return;
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor('#E74C3C')
+    .setTitle('🎨 Painel de Personalização - Anúncios')
+    .setDescription(
+      'Personalize completamente a aparência dos seus anúncios.\n\n' +
+      '**Use os botões abaixo para customizar:**'
+    )
+    .addFields(
+      { name: '🎨 Visual', value: 'Título, descrição, cores, imagens', inline: true },
+      { name: '👤 Autor', value: 'Definir autor do anúncio', inline: true },
+      { name: '🏷️ Campos', value: 'Adicionar campos informativos', inline: true },
+      { name: '📝 Rodapé', value: 'Personalizar rodapé', inline: true },
+      { name: '🖼️ Imagens', value: 'Banner e thumbnail', inline: true },
+      { name: '📢 Variáveis', value: '{user}, {date}, {server}', inline: true }
+    )
+    .setFooter({ text: 'Sistema de Personalização Dinâmica' })
+    .setTimestamp();
+
+  const row1 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('customize_announcement_title')
+        .setLabel('Título')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📝'),
+      new ButtonBuilder()
+        .setCustomId('customize_announcement_description')
+        .setLabel('Descrição')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📄'),
+      new ButtonBuilder()
+        .setCustomId('customize_announcement_color')
+        .setLabel('Cor')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🎨')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('customize_announcement_author')
+        .setLabel('Autor')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('👤'),
+      new ButtonBuilder()
+        .setCustomId('customize_announcement_fields')
+        .setLabel('Campos')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🏷️'),
+      new ButtonBuilder()
+        .setCustomId('customize_announcement_footer')
+        .setLabel('Rodapé')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📝')
+    );
+
+  const row3 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('customize_announcement_image')
+        .setLabel('Imagem')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🖼️'),
+      new ButtonBuilder()
+        .setCustomId('customize_announcement_thumbnail')
+        .setLabel('Thumbnail')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🔳')
+    );
+
+  const row4 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('customize_announcement_preview')
+        .setLabel('👁️ Pré-visualizar')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('customize_announcement_save')
+        .setLabel('💾 Salvar Tudo')
+        .setStyle(ButtonStyle.Success)
+    );
+
+  await interaction.reply({
+    embeds: [embed],
+    components: [row1, row2, row3, row4],
+    ephemeral: true
+  });
 }
