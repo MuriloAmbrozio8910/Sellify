@@ -890,7 +890,7 @@ export async function handleTicketModal(interaction: any) {
   const subject = interaction.fields.getTextInputValue('ticket_subject');
   const description = interaction.fields.getTextInputValue('ticket_description');
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const { ticket, channel } = await createTicket(
@@ -943,7 +943,7 @@ export async function handleTicketActionButton(interaction: ButtonInteraction) {
 async function handleClaimTicket(interaction: ButtonInteraction) {
   const ticketId = interaction.customId.replace('ticket_claim_', '');
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     await claimTicket(ticketId, interaction.member as any);
@@ -961,7 +961,7 @@ async function handleClaimTicket(interaction: ButtonInteraction) {
 async function handleCloseTicket(interaction: ButtonInteraction) {
   const ticketId = interaction.customId.replace('ticket_close_', '');
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     await closeTicket(ticketId, interaction.member as any);
@@ -996,7 +996,7 @@ async function handleViewAllTickets(interaction: ButtonInteraction) {
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const tickets = await listTickets(interaction.guildId!);
@@ -1085,7 +1085,7 @@ async function handleCreatePublicTicketPanel(interaction: ButtonInteraction) {
  * Handler para o modal de criação de painel de tickets
  */
 export async function handleCreateTicketPanelModal(interaction: any) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const channelId = interaction.fields.getTextInputValue('channel_id');
 
@@ -1173,7 +1173,7 @@ async function handleStatsProducts(interaction: ButtonInteraction) {
 }
 
 async function handleStatsUsers(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const { data: transactions, error } = await supabase
@@ -1256,7 +1256,7 @@ async function handleAnnouncementsCreate(interaction: ButtonInteraction) {
 }
 
 async function handleAnnouncementsList(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const announcements = await listAnnouncements(interaction.guildId!);
@@ -1487,7 +1487,7 @@ async function handleTaskReports(interaction: ButtonInteraction) {
 }
 
 async function handleTaskList(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const { data: tasks, error } = await supabase
@@ -1542,7 +1542,7 @@ async function handleTaskList(interaction: ButtonInteraction) {
  * Handlers para modais de automação
  */
 export async function handleAutomationAutoRoleModal(interaction: any) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const roleId = interaction.fields.getTextInputValue('role_id');
   const enabled = interaction.fields.getTextInputValue('enabled').toLowerCase() === 'sim';
@@ -1583,7 +1583,7 @@ export async function handleAutomationAutoRoleModal(interaction: any) {
 }
 
 export async function handleAutomationWelcomeModal(interaction: any) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const channelId = interaction.fields.getTextInputValue('channel_id');
   const message = interaction.fields.getTextInputValue('welcome_message');
@@ -1625,7 +1625,7 @@ export async function handleAutomationWelcomeModal(interaction: any) {
 }
 
 export async function handleTaskCleanupModal(interaction: any) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const channelId = interaction.fields.getTextInputValue('channel_id');
   const daysOld = parseInt(interaction.fields.getTextInputValue('days_old'));
@@ -1674,7 +1674,7 @@ export async function handleTaskCleanupModal(interaction: any) {
 }
 
 export async function handleTaskReportsModal(interaction: any) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const channelId = interaction.fields.getTextInputValue('channel_id');
   const intervalType = interaction.fields.getTextInputValue('interval').toLowerCase();
@@ -1791,7 +1791,7 @@ async function handleConfigChannels(interaction: ButtonInteraction) {
  */
 
 async function handleLogsTransactions(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const { data: logs, error } = await supabase
@@ -1841,7 +1841,7 @@ async function handleLogsTransactions(interaction: ButtonInteraction) {
 }
 
 async function handleLogsCommands(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const { data: logs, error } = await supabase
@@ -1890,7 +1890,7 @@ async function handleLogsCommands(interaction: ButtonInteraction) {
 }
 
 async function handleLogsActions(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const { data: logs, error } = await supabase
@@ -2080,7 +2080,7 @@ async function handleProductCreate(interaction: ButtonInteraction) {
  * Listar todos os produtos
  */
 async function handleProductsList(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const { getActiveProducts } = await import('../utils/supabase');
@@ -2214,7 +2214,7 @@ async function handleCouponCreate(interaction: ButtonInteraction) {
  * Listar cupons
  */
 async function handleCouponsList(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const { data: coupons, error } = await supabase
@@ -2289,7 +2289,7 @@ async function handleCouponsList(interaction: ButtonInteraction) {
  * Ver estatísticas de vendas
  */
 async function handleSalesStats(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const { data: transactions, error } = await supabase
@@ -2347,7 +2347,7 @@ async function handleSalesStats(interaction: ButtonInteraction) {
  * Ver vendas recentes
  */
 async function handleSalesRecent(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const { data: transactions, error } = await supabase
@@ -2405,7 +2405,7 @@ async function handleSalesRecent(interaction: ButtonInteraction) {
  * Ver produtos mais vendidos
  */
 async function handleSalesTopProducts(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const { data: transactions, error } = await supabase
@@ -2485,7 +2485,7 @@ export async function handleBroadcastConfirmation(interaction: ButtonInteraction
   const customId = interaction.customId;
 
   if (customId.startsWith('confirm_broadcast_')) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
     await interaction.editReply({
       content: '🚀 Enviando broadcast... Isso pode levar alguns minutos.',
       components: []

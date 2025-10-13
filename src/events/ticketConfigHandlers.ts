@@ -184,7 +184,7 @@ async function handleConfigLimit(interaction: ButtonInteraction) {
  * Ver Configuração Atual
  */
 async function handleViewConfig(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const { data, error } = await supabase
@@ -273,7 +273,7 @@ async function handleViewConfig(interaction: ButtonInteraction) {
  * Handler para modais de configuração de tickets
  */
 export async function handleTicketConfigModal(interaction: any) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const customId = interaction.customId;
 

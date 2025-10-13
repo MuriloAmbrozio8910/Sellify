@@ -21,33 +21,42 @@ export const data = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  try {
+    await interaction.deferReply({ flags: 64 }); // 64 = Ephemeral
 
-  const guildId = interaction.guildId!;
-  const config = await getOrCreateGuildConfig(guildId);
-  const ticketStats = await getTicketStats(guildId);
+    const guildId = interaction.guildId!;
+    const config = await getOrCreateGuildConfig(guildId);
+    const ticketStats = await getTicketStats(guildId);
 
-  // Buscar estatísticas de vendas
-  const { supabase } = await import('../utils/supabase');
-  const { data: salesData } = await supabase
-    .from('transactions')
-    .select('amount, status')
-    .eq('guild_id', guildId)
-    .eq('status', 'completed');
+    // Buscar estatísticas de vendas
+    const { supabase } = await import('../utils/supabase');
+    const { data: salesData, error: salesError } = await supabase
+      .from('transactions')
+      .select('amount, status')
+      .eq('guild_id', guildId)
+      .eq('status', 'completed');
 
-  const totalSales = salesData?.reduce((sum, t) => sum + t.amount, 0) || 0;
-  const salesCount = salesData?.length || 0;
+    if (salesError) {
+      console.error('Erro ao buscar vendas:', salesError);
+    }
 
-  // Buscar produtos ativos
-  const { data: productsData } = await supabase
-    .from('products')
-    .select('id')
-    .eq('guild_id', guildId)
-    .eq('is_active', true);
+    const totalSales = salesData?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+    const salesCount = salesData?.length || 0;
 
-  const productsCount = productsData?.length || 0;
+    // Buscar produtos ativos
+    const { data: productsData, error: productsError } = await supabase
+      .from('products')
+      .select('id')
+      .eq('guild_id', guildId)
+      .eq('is_active', true);
 
-  const { formatCurrency } = await import('../utils/payments');
+    if (productsError) {
+      console.error('Erro ao buscar produtos:', productsError);
+    }
+
+    const productsCount = productsData?.length || 0;
+
+    const { formatCurrency } = await import('../utils/payments');
 
   // Embed principal moderno e elegante
   const embed = new EmbedBuilder()
@@ -183,8 +192,23 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         .setEmoji('🔄')
     );
 
-  await interaction.editReply({
-    embeds: [embed],
-    components: [row1, row2, row3]
-  });
+    await interaction.editReply({
+      embeds: [embed],
+      components: [row1, row2, row3]
+    });
+  } catch (error) {
+    console.error('Erro no comando painel:', error);
+    
+    const errorEmbed = new EmbedBuilder()
+      .setColor('#FF0000')
+      .setTitle('❌ Erro')
+      .setDescription('Ocorreu um erro ao carregar o painel. Tente novamente.')
+      .setTimestamp();
+    
+    if (interaction.deferred) {
+      await interaction.editReply({ embeds: [errorEmbed], components: [] });
+    } else {
+      await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+    }
+  }
 }

@@ -162,7 +162,7 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     const subcommand = interaction.options.getSubcommand();
     const config = await getOrCreateGuildConfig(interaction.guildId!);

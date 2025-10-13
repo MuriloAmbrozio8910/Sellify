@@ -154,7 +154,7 @@ export async function handleCreateAnnouncementModalSubmit(interaction: ModalSubm
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     // Validate channel
@@ -230,7 +230,7 @@ export async function handleAnnouncementActionButton(interaction: ButtonInteract
   }
 
   if (customId === 'announcement_list') {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     try {
       const { listAnnouncements } = await import('../utils/announcementManager');

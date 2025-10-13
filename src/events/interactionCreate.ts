@@ -370,7 +370,7 @@ async function handleCatalogRefresh(interaction: ButtonInteraction) {
  * Seleção de produto
  */
 async function handleProductSelection(interaction: StringSelectMenuInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const productId = interaction.values[0];
   const product = await getProductById(productId);
@@ -409,7 +409,7 @@ async function handleProductSelection(interaction: StringSelectMenuInteraction) 
  * Iniciar processo de compra
  */
 async function handleBuyProduct(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const productId = interaction.customId.replace('buy_product_', '');
   const product = await getProductById(productId);
@@ -470,7 +470,7 @@ async function handleBuyProduct(interaction: ButtonInteraction) {
  * Confirmar compra e gerar link de pagamento
  */
 async function handleConfirmBuy(interaction: ButtonInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const parts = interaction.customId.split('_');
   const productId = parts[2];
@@ -577,7 +577,7 @@ async function handleManualPayment(interaction: ButtonInteraction) {
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const transactionId = interaction.customId.replace('manual_payment_', '');
   
@@ -597,7 +597,7 @@ async function handlePaymentMethodSelection(interaction: StringSelectMenuInterac
 async function handleCatalogProductClick(interaction: ButtonInteraction) {
   const productId = interaction.customId.replace('catalog_product_', '');
   
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const product = await getProductById(productId);
   if (!product) {

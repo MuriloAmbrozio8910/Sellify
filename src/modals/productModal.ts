@@ -384,7 +384,7 @@ export async function handleAddProductModalSubmit(interaction: ModalSubmitIntera
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const product = await createProduct({
@@ -452,7 +452,7 @@ export async function handleEditProductModalSubmit(interaction: ModalSubmitInter
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const updated = await updateProduct(productId, {
@@ -510,7 +510,7 @@ export async function handleProductExtrasModalSubmit(interaction: ModalSubmitInt
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const updated = await updateProduct(productId, {
@@ -551,7 +551,7 @@ export async function handleProductActionButton(interaction: ButtonInteraction) 
   }
 
   if (customId === 'product_view_catalog') {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     try {
       const products = await getActiveProducts(interaction.guildId!);

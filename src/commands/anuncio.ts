@@ -154,7 +154,7 @@ async function handleCreateAnnouncement(interaction: ChatInputCommandInteraction
 }
 
 async function handleScheduleAnnouncement(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const title = interaction.options.getString('titulo', true);
   const content = interaction.options.getString('conteudo', true);
@@ -211,7 +211,7 @@ async function handleScheduleAnnouncement(interaction: ChatInputCommandInteracti
 }
 
 async function handleListAnnouncements(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const statusFilter = interaction.options.getString('status') as AnnouncementStatus | null;
 
@@ -261,7 +261,7 @@ async function handleListAnnouncements(interaction: ChatInputCommandInteraction)
 }
 
 async function handleCancelAnnouncement(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const announcementId = interaction.options.getString('id', true);
 
@@ -283,7 +283,7 @@ async function handleCancelAnnouncement(interaction: ChatInputCommandInteraction
 }
 
 async function handleBroadcast(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const title = interaction.options.getString('titulo', true);
   const content = interaction.options.getString('conteudo', true);

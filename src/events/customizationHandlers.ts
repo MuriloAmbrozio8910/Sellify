@@ -396,7 +396,7 @@ async function handleCustomizeConfig(interaction: ButtonInteraction, type: strin
  * Pré-visualizar
  */
 async function handlePreview(interaction: ButtonInteraction, type: string) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const customization = getTempCustomization(interaction.guildId!, type);
@@ -431,7 +431,7 @@ async function handlePreview(interaction: ButtonInteraction, type: string) {
  * Salvar Customização
  */
 async function handleSave(interaction: ButtonInteraction, type: string) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const customization = getTempCustomization(interaction.guildId!, type);
@@ -466,7 +466,7 @@ async function handleSave(interaction: ButtonInteraction, type: string) {
  * Handler para modais de customização
  */
 export async function handleCustomizationModal(interaction: any) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const customId = interaction.customId;
   const match = customId.match(/customize_modal_(\w+)_(\w+)/);

@@ -208,7 +208,7 @@ async function handleModerate(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const text = interaction.options.getString('texto', true);
 
@@ -262,7 +262,7 @@ async function handleStats(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const days = interaction.options.getInteger('dias') || 30;
 

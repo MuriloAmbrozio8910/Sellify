@@ -167,7 +167,7 @@ export async function handleAddCouponModalSubmit(interaction: ModalSubmitInterac
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const coupon = await createCoupon({
@@ -235,7 +235,7 @@ export async function handleCouponActionButton(interaction: ButtonInteraction) {
   }
 
   if (customId === 'coupon_view_catalog') {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     try {
       const products = await getActiveProducts(interaction.guildId!);

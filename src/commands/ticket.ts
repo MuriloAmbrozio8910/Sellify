@@ -123,7 +123,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleOpenTicket(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const subject = interaction.options.getString('assunto', true);
   const category = interaction.options.getString('categoria') || undefined;
@@ -168,7 +168,7 @@ async function handleListTickets(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const statusFilter = interaction.options.getString('status') as TicketStatus | null;
 
@@ -226,7 +226,7 @@ async function handleTicketStats(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     const stats = await getTicketStats(interaction.guildId!);
@@ -457,7 +457,7 @@ async function handleCreatePanel(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const channel = interaction.options.getChannel('canal', true);
 

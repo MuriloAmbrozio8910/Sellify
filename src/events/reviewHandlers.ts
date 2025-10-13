@@ -495,7 +495,7 @@ export function showReviewSellerModal(sellerId: string, category: string) {
  * Processar avaliação de vendedor
  */
 export async function handleSellerReviewModal(interaction: any) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const [, , , sellerId, category] = interaction.customId.split('_');
   const rating = parseInt(interaction.fields.getTextInputValue('rating'));
@@ -546,7 +546,7 @@ export async function handleSellerReviewModal(interaction: any) {
  * Processar avaliação de produto
  */
 export async function handleProductReviewModal(interaction: any) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const [, , , productId, transactionId] = interaction.customId.split('_');
   const rating = parseInt(interaction.fields.getTextInputValue('rating'));

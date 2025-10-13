@@ -59,7 +59,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
  * Avaliar produto
  */
 async function handleRateProduct(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   // Buscar produtos que o usuário comprou
   const { data: purchases } = await supabase
@@ -132,7 +132,7 @@ async function handleRateProduct(interaction: ChatInputCommandInteraction) {
  * Avaliar vendedor
  */
 async function handleRateSeller(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   const seller = interaction.options.getUser('usuario', true);
   const category = interaction.options.getString('categoria', true);
