@@ -201,7 +201,7 @@ async function handleCatalogSetup(interaction: ChatInputCommandInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({
       content: '❌ Apenas administradores podem personalizar o catálogo.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
@@ -277,6 +277,6 @@ async function handleCatalogSetup(interaction: ChatInputCommandInteraction) {
   await interaction.reply({
     embeds: [embed],
     components: [row1, row2, row3],
-    ephemeral: true
+    flags: 64
   });
 }

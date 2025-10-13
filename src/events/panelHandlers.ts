@@ -31,7 +31,7 @@ export async function handlePanelButton(interaction: ButtonInteraction) {
   if (customId === 'panel_refresh') {
     await handlePanelRefresh(interaction);
   }
-  else if (customId === 'panel_back_main') {
+  else if (customId === 'panel_main' || customId === 'panel_back_main') {
     await handleBackToMainPanel(interaction);
   }
   else if (customId === 'panel_products') {
@@ -141,6 +141,9 @@ export async function handlePanelButton(interaction: ButtonInteraction) {
     const { handleTopSellers } = await import('./reviewHandlers');
     await handleTopSellers(interaction);
   }
+  else if (customId === 'reviews_pending') {
+    await handleReviewsPending(interaction);
+  }
   // Botões de Automações
   else if (customId === 'automations_roles') {
     await handleAutomationsRoles(interaction);
@@ -249,39 +252,93 @@ async function handlePanelRefresh(interaction: ButtonInteraction) {
  * Voltar ao painel principal
  */
 async function handleBackToMainPanel(interaction: ButtonInteraction) {
-  const config = await getOrCreateGuildConfig(interaction.guildId!);
-  const ticketStats = await getTicketStats(interaction.guildId!);
+  await interaction.deferUpdate();
 
+  const guildId = interaction.guildId!;
+  const config = await getOrCreateGuildConfig(guildId);
+  const ticketStats = await getTicketStats(guildId);
+
+  // Buscar estatísticas de vendas
+  const { data: salesData } = await supabase
+    .from('transactions')
+    .select('amount, status')
+    .eq('guild_id', guildId)
+    .eq('status', 'completed');
+
+  const totalSales = salesData?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+  const salesCount = salesData?.length || 0;
+
+  // Buscar produtos ativos
+  const { data: productsData } = await supabase
+    .from('products')
+    .select('id')
+    .eq('guild_id', guildId)
+    .eq('is_active', true);
+
+  const productsCount = productsData?.length || 0;
+
+  const { formatCurrency } = await import('../utils/payments');
+
+  // Embed principal moderno e elegante
   const embed = new EmbedBuilder()
-    .setColor('#5865F2')
-    .setTitle('🎛️ Painel de Gerenciamento')
+    .setColor('#2F3136')
+    .setTitle('✨ Painel de Gerenciamento - Sellify')
     .setDescription(
-      `Bem-vindo ao painel de controle do **${interaction.guild!.name}**!\n\n` +
-      `Aqui você pode gerenciar todas as funcionalidades do bot de forma rápida e intuitiva.`
+      `╔════════════════════════════════════╗\n` +
+      `  Bem-vindo, **${interaction.user.username}**!\n` +
+      `  Gerencie seu servidor com facilidade\n` +
+      `╚════════════════════════════════════╝`
     )
     .addFields(
       {
-        name: '📊 Estatísticas Gerais',
+        name: '\u200b',
+        value: '**📊 ESTATÍSTICAS DO SERVIDOR**',
+        inline: false
+      },
+      {
+        name: '👥 Comunidade',
         value: 
-          `👥 **Membros:** ${interaction.guild!.memberCount}\n` +
-          `🎫 **Tickets Abertos:** ${ticketStats?.open || 0}\n` +
-          `🎫 **Tickets em Atendimento:** ${ticketStats?.claimed || 0}\n` +
-          `✅ **Tickets Fechados:** ${ticketStats?.closed || 0}`,
+          `\`\`\`\n` +
+          `Membros: ${interaction.guild!.memberCount}\n` +
+          `Online: ${interaction.guild!.members.cache.filter(m => m.presence?.status !== 'offline').size}\n` +
+          `Bots: ${interaction.guild!.members.cache.filter(m => m.user.bot).size}\n` +
+          `\`\`\``,
         inline: true
       },
       {
-        name: '⚙️ Configurações',
+        name: '💰 Vendas',
         value:
-          `💰 **Moeda:** ${config.currency}\n` +
-          `🎨 **Cor:** ${config.embed_color}\n` +
-          `💳 **Stripe:** ${config.stripe_enabled ? '✅' : '❌'}\n` +
-          `💚 **Mercado Pago:** ${config.mercadopago_enabled ? '✅' : '❌'}`,
+          `\`\`\`\n` +
+          `Total: ${formatCurrency(totalSales, config.currency)}\n` +
+          `Transações: ${salesCount}\n` +
+          `Produtos: ${productsCount}\n` +
+          `\`\`\``,
         inline: true
+      },
+      {
+        name: '🎫 Suporte',
+        value:
+          `\`\`\`\n` +
+          `Abertos: ${ticketStats?.open || 0}\n` +
+          `Atendendo: ${ticketStats?.claimed || 0}\n` +
+          `Fechados: ${ticketStats?.closed || 0}\n` +
+          `\`\`\``,
+        inline: true
+      },
+      {
+        name: '\u200b',
+        value: '**⚡ ACESSO RÁPIDO**',
+        inline: false
       }
     )
+    .setThumbnail(interaction.guild!.iconURL())
+    .setFooter({ 
+      text: `${interaction.guild!.name} • Sistema Sellify`, 
+      iconURL: interaction.guild!.iconURL() || undefined 
+    })
     .setTimestamp();
 
-  // Primeira linha de botões - Gestão de Produtos e Vendas
+  // Linha 1: Gestão de Vendas
   const row1 = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
@@ -297,16 +354,16 @@ async function handleBackToMainPanel(interaction: ButtonInteraction) {
       new ButtonBuilder()
         .setCustomId('panel_coupons')
         .setLabel('Cupons')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Success)
         .setEmoji('🎟️'),
       new ButtonBuilder()
-        .setCustomId('panel_stats')
-        .setLabel('Estatísticas')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('📊')
+        .setCustomId('panel_reviews')
+        .setLabel('Avaliações')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('⭐')
     );
 
-  // Segunda linha de botões - Tickets e Anúncios
+  // Linha 2: Suporte e Comunicação
   const row2 = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
@@ -321,34 +378,34 @@ async function handleBackToMainPanel(interaction: ButtonInteraction) {
         .setEmoji('📢'),
       new ButtonBuilder()
         .setCustomId('panel_automations')
-        .setLabel('Automações')
+        .setLabel('Automação')
         .setStyle(ButtonStyle.Secondary)
         .setEmoji('🤖'),
       new ButtonBuilder()
         .setCustomId('panel_ai')
-        .setLabel('IA')
+        .setLabel('Inteligência')
         .setStyle(ButtonStyle.Secondary)
         .setEmoji('🧠')
     );
 
-  // Terceira linha de botões - Configurações
+  // Linha 3: Análise e Configurações
   const row3 = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('panel_config')
-        .setLabel('Configurações')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('⚙️'),
+        .setCustomId('panel_stats')
+        .setLabel('Estatísticas')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📊'),
       new ButtonBuilder()
         .setCustomId('panel_logs')
         .setLabel('Logs')
         .setStyle(ButtonStyle.Secondary)
         .setEmoji('📋'),
       new ButtonBuilder()
-        .setCustomId('panel_help')
-        .setLabel('Ajuda')
+        .setCustomId('panel_config')
+        .setLabel('Configurar')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji('❓'),
+        .setEmoji('⚙️'),
       new ButtonBuilder()
         .setCustomId('panel_refresh')
         .setLabel('Atualizar')
@@ -356,7 +413,7 @@ async function handleBackToMainPanel(interaction: ButtonInteraction) {
         .setEmoji('🔄')
     );
 
-  await interaction.update({
+  await interaction.editReply({
     embeds: [embed],
     components: [row1, row2, row3]
   });
@@ -979,7 +1036,7 @@ async function handleCloseTicket(interaction: ButtonInteraction) {
 async function handleChangePriority(interaction: ButtonInteraction) {
   await interaction.reply({
     content: '🔄 Funcionalidade de alteração de prioridade em desenvolvimento!',
-    ephemeral: true
+    flags: 64
   });
 }
 
@@ -991,7 +1048,7 @@ async function handleViewAllTickets(interaction: ButtonInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) {
     await interaction.reply({
       content: '❌ Você precisa de permissão de moderador para ver todos os tickets.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
@@ -1058,7 +1115,7 @@ async function handleCreatePublicTicketPanel(interaction: ButtonInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({
       content: '❌ Apenas administradores podem criar painéis públicos.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
@@ -1164,7 +1221,7 @@ async function handleStatsGeneral(interaction: ButtonInteraction) {
   await interaction.reply({
     content: '💡 Use o comando `/stats` para ver estatísticas gerais detalhadas do servidor!\n\n' +
              'Você verá métricas completas de vendas, produtos e desempenho.',
-    ephemeral: true
+    flags: 64
   });
 }
 
@@ -1251,7 +1308,7 @@ async function handleAnnouncementsCreate(interaction: ButtonInteraction) {
   await interaction.reply({
     content: '💡 Use o comando `/anuncio criar canal:#seucanalaqui` para criar um anúncio!\n\n' +
              'Um modal será aberto com campos para título, conteúdo, cor, imagem e menção de role.',
-    ephemeral: true
+    flags: 64
   });
 }
 
@@ -1418,7 +1475,7 @@ async function handleAutomationsTasks(interaction: ButtonInteraction) {
         .setStyle(ButtonStyle.Secondary)
     );
 
-  await interaction.reply({ embeds: [embed], components: [row1, row2], ephemeral: true });
+  await interaction.reply({ embeds: [embed], components: [row1, row2], flags: 64 });
 }
 
 /**
@@ -1734,7 +1791,7 @@ async function handleAIChat(interaction: ButtonInteraction) {
   await interaction.reply({
     content: '💡 Use o comando `/ia chat` para conversar com a inteligência artificial!\n\n' +
              'A IA pode responder perguntas, dar sugestões e muito mais.',
-    ephemeral: true
+    flags: 64
   });
 }
 
@@ -1742,7 +1799,7 @@ async function handleAIGenerate(interaction: ButtonInteraction) {
   await interaction.reply({
     content: '💡 Use o comando `/ia gerar` para criar conteúdo automaticamente!\n\n' +
              'Gere descrições de produtos, anúncios, mensagens e muito mais.',
-    ephemeral: true
+    flags: 64
   });
 }
 
@@ -1750,7 +1807,7 @@ async function handleAIStats(interaction: ButtonInteraction) {
   await interaction.reply({
     content: '💡 Use o comando `/ia stats` para ver estatísticas de uso da IA!\n\n' +
              'Veja quantas requisições foram feitas e custos estimados.',
-    ephemeral: true
+    flags: 64
   });
 }
 
@@ -1764,7 +1821,7 @@ async function handleConfigPayment(interaction: ButtonInteraction) {
   await interaction.reply({
     content: '💡 Use o comando `/config` para configurar métodos de pagamento!\n\n' +
              'Configure Stripe, Mercado Pago e outras integrações de pagamento.',
-    ephemeral: true
+    flags: 64
   });
 }
 
@@ -1772,7 +1829,7 @@ async function handleConfigAppearance(interaction: ButtonInteraction) {
   await interaction.reply({
     content: '💡 Use o comando `/config` para personalizar a aparência!\n\n' +
              'Altere cores de embeds, moeda padrão e muito mais.',
-    ephemeral: true
+    flags: 64
   });
 }
 
@@ -1780,7 +1837,7 @@ async function handleConfigChannels(interaction: ButtonInteraction) {
   await interaction.reply({
     content: '💡 Use o comando `/config` para configurar canais!\n\n' +
              'Defina canais para logs, vendas, tickets e categorias.',
-    ephemeral: true
+    flags: 64
   });
 }
 
@@ -1982,7 +2039,7 @@ async function handleHelpCommands(interaction: ButtonInteraction) {
         .setStyle(ButtonStyle.Secondary)
     );
 
-  await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+  await interaction.reply({ embeds: [embed], components: [row], flags: 64 });
 }
 
 async function handleHelpFeatures(interaction: ButtonInteraction) {
@@ -2023,7 +2080,7 @@ async function handleHelpFeatures(interaction: ButtonInteraction) {
         .setStyle(ButtonStyle.Secondary)
     );
 
-  await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+  await interaction.reply({ embeds: [embed], components: [row], flags: 64 });
 }
 
 async function handleHelpSupport(interaction: ButtonInteraction) {
@@ -2058,7 +2115,7 @@ async function handleHelpSupport(interaction: ButtonInteraction) {
         .setStyle(ButtonStyle.Secondary)
     );
 
-  await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+  await interaction.reply({ embeds: [embed], components: [row], flags: 64 });
 }
 
 /**
@@ -2145,7 +2202,7 @@ async function handleProductsCatalog(interaction: ButtonInteraction) {
   await interaction.reply({
     content: '💡 Use o comando `/catalogo` para ver o catálogo completo de produtos!\n\n' +
              'Você também pode usar `/catalogo permanente` para criar um catálogo fixo em um canal.',
-    ephemeral: true
+    flags: 64
   });
 }
 
@@ -2495,7 +2552,7 @@ export async function handleBroadcastConfirmation(interaction: ButtonInteraction
     // Por simplicidade, vamos mostrar apenas uma mensagem de confirmação
     await interaction.followUp({
       content: '✅ Broadcast iniciado! Você receberá uma notificação quando concluído.',
-      ephemeral: true
+      flags: 64
     });
   }
   else if (customId.startsWith('cancel_broadcast_')) {
@@ -2505,4 +2562,75 @@ export async function handleBroadcastConfirmation(interaction: ButtonInteraction
       components: []
     });
   }
+}
+
+/**
+ * Painel de avaliações pendentes
+ */
+async function handleReviewsPending(interaction: ButtonInteraction) {
+  await interaction.deferUpdate();
+
+  const { data: pendingProductReviews } = await supabase
+    .from('product_reviews')
+    .select('*, products(name)')
+    .eq('guild_id', interaction.guildId!)
+    .eq('is_approved', false)
+    .order('created_at', { ascending: false });
+
+  const { data: pendingSellerReviews } = await supabase
+    .from('seller_reviews')
+    .select('*')
+    .eq('guild_id', interaction.guildId!)
+    .eq('is_approved', false)
+    .order('created_at', { ascending: false });
+
+  const totalPending = (pendingProductReviews?.length || 0) + (pendingSellerReviews?.length || 0);
+
+  const embed = new EmbedBuilder()
+    .setColor('#FFA500')
+    .setTitle('⏳ Avaliações Pendentes de Aprovação')
+    .setDescription(
+      totalPending > 0
+        ? `Há **${totalPending}** avaliação(ões) aguardando aprovação.`
+        : '✅ Não há avaliações pendentes.'
+    );
+
+  if (pendingProductReviews && pendingProductReviews.length > 0) {
+    embed.addFields({
+      name: '🛍️ Produtos Pendentes',
+      value: pendingProductReviews.slice(0, 5).map(r => {
+        const stars = '⭐'.repeat(r.rating);
+        const product = (r.products as any)?.name || 'Produto';
+        return `${stars} **${product}** - <@${r.user_id}>`;
+      }).join('\n') + (pendingProductReviews.length > 5 ? `\n\n+${pendingProductReviews.length - 5} mais...` : ''),
+      inline: false
+    });
+  }
+
+  if (pendingSellerReviews && pendingSellerReviews.length > 0) {
+    embed.addFields({
+      name: '👤 Vendedores Pendentes',
+      value: pendingSellerReviews.slice(0, 5).map(r => {
+        const stars = '⭐'.repeat(r.rating);
+        return `${stars} <@${r.seller_id}> - por <@${r.reviewer_id}>`;
+      }).join('\n') + (pendingSellerReviews.length > 5 ? `\n\n+${pendingSellerReviews.length - 5} mais...` : ''),
+      inline: false
+    });
+  }
+
+  embed.setFooter({ text: 'Sistema de moderação de avaliações' })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_reviews')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [row]
+  });
 }

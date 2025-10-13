@@ -19,7 +19,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({
       content: '❌ Você precisa de permissão de administrador para adicionar produtos.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }

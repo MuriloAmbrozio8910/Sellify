@@ -144,13 +144,13 @@ export async function showCreateAnnouncementModal(
 
 export async function handleCreateAnnouncementModalSubmit(interaction: ModalSubmitInteraction) {
   if (!interaction.guildId) {
-    await interaction.reply({ content: '❌ Esta ação só pode ser usada em um servidor.', ephemeral: true });
+    await interaction.reply({ content: '❌ Esta ação só pode ser usada em um servidor.', flags: 64 });
     return;
   }
 
   const payload = parseAnnouncementPayload(interaction);
   if ('error' in payload) {
-    await interaction.reply({ content: payload.error, ephemeral: true });
+    await interaction.reply({ content: payload.error, flags: 64 });
     return;
   }
 
@@ -183,11 +183,16 @@ export async function handleCreateAnnouncementModalSubmit(interaction: ModalSubm
 
     logger.success(`Anúncio criado e enviado: ${announcement.title}`);
 
+    // Limitar título para evitar erro do Discord (limite de 1024 chars para value)
+    const titlePreview = payload.title.length > 1000 
+      ? payload.title.substring(0, 997) + '...' 
+      : payload.title;
+
     const embed = new EmbedBuilder()
       .setColor('#00FF00')
       .setTitle('✅ Anúncio enviado!')
       .addFields(
-        { name: 'Título', value: payload.title, inline: false },
+        { name: 'Título', value: titlePreview, inline: false },
         { name: 'Canal', value: `<#${payload.channelId}>`, inline: true },
         { name: 'ID', value: announcement.id.slice(0, 8), inline: true }
       )
@@ -252,8 +257,13 @@ export async function handleAnnouncementActionButton(interaction: ButtonInteract
                            announcement.status === 'scheduled' ? '⏰' :
                            announcement.status === 'cancelled' ? '❌' : '📝';
 
+        // Limitar título para evitar erro do Discord (limite de 256 chars para name)
+        const titlePreview = announcement.title.length > 200 
+          ? announcement.title.substring(0, 197) + '...' 
+          : announcement.title;
+
         embed.addFields({
-          name: `${statusEmoji} ${announcement.title}`,
+          name: `${statusEmoji} ${titlePreview}`,
           value: `**Status:** ${announcement.status}\n**Canal:** <#${announcement.channel_id}>\n**ID:** \`${announcement.id.slice(0, 8)}\``,
           inline: false
         });

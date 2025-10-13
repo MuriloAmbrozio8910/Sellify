@@ -157,13 +157,13 @@ export async function showAddCouponModal(interaction: CouponTriggerInteraction) 
 
 export async function handleAddCouponModalSubmit(interaction: ModalSubmitInteraction) {
   if (!interaction.guildId) {
-    await interaction.reply({ content: '❌ Esta ação só pode ser usada em um servidor.', ephemeral: true });
+    await interaction.reply({ content: '❌ Esta ação só pode ser usada em um servidor.', flags: 64 });
     return;
   }
 
   const payload = parseCouponPayload(interaction);
   if ('error' in payload) {
-    await interaction.reply({ content: payload.error, ephemeral: true });
+    await interaction.reply({ content: payload.error, flags: 64 });
     return;
   }
 

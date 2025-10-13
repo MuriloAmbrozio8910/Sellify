@@ -203,7 +203,7 @@ async function handleModerate(interaction: ChatInputCommandInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ModerateMembers)) {
     await interaction.reply({
       content: '❌ Você precisa de permissão de moderador para usar este comando.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
@@ -257,7 +257,7 @@ async function handleStats(interaction: ChatInputCommandInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({
       content: '❌ Apenas administradores podem ver estatísticas de IA.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
@@ -317,7 +317,7 @@ async function handleAssistant(interaction: ChatInputCommandInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
     await interaction.reply({
       content: '❌ Você precisa de permissão de gerenciamento para usar o assistente administrativo.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }

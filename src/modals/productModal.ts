@@ -374,13 +374,13 @@ async function showExtrasModal(interaction: ModalTriggerInteraction, product: Pr
 
 export async function handleAddProductModalSubmit(interaction: ModalSubmitInteraction) {
   if (!interaction.guildId) {
-    await interaction.reply({ content: '❌ Esta ação só pode ser usada dentro de um servidor.', ephemeral: true });
+    await interaction.reply({ content: '❌ Esta ação só pode ser usada dentro de um servidor.', flags: 64 });
     return;
   }
 
   const basics = mapBasics(interaction);
   if ('error' in basics) {
-    await interaction.reply({ content: basics.error, ephemeral: true });
+    await interaction.reply({ content: basics.error, flags: 64 });
     return;
   }
 
@@ -430,7 +430,7 @@ export async function handleAddProductModalSubmit(interaction: ModalSubmitIntera
 
 export async function handleEditProductModalSubmit(interaction: ModalSubmitInteraction) {
   if (!interaction.guildId) {
-    await interaction.reply({ content: '❌ Esta ação só pode ser usada dentro de um servidor.', ephemeral: true });
+    await interaction.reply({ content: '❌ Esta ação só pode ser usada dentro de um servidor.', flags: 64 });
     return;
   }
 
@@ -442,13 +442,13 @@ export async function handleEditProductModalSubmit(interaction: ModalSubmitInter
   const product = await getProductById(productId);
 
   if (!product || product.guild_id !== interaction.guildId) {
-    await interaction.reply({ content: '❌ Produto não encontrado ou pertence a outro servidor.', ephemeral: true });
+    await interaction.reply({ content: '❌ Produto não encontrado ou pertence a outro servidor.', flags: 64 });
     return;
   }
 
   const basics = mapBasics(interaction);
   if ('error' in basics) {
-    await interaction.reply({ content: basics.error, ephemeral: true });
+    await interaction.reply({ content: basics.error, flags: 64 });
     return;
   }
 
@@ -488,7 +488,7 @@ export async function handleEditProductModalSubmit(interaction: ModalSubmitInter
 
 export async function handleProductExtrasModalSubmit(interaction: ModalSubmitInteraction) {
   if (!interaction.guildId) {
-    await interaction.reply({ content: '❌ Esta ação só pode ser usada dentro de um servidor.', ephemeral: true });
+    await interaction.reply({ content: '❌ Esta ação só pode ser usada dentro de um servidor.', flags: 64 });
     return;
   }
 
@@ -500,13 +500,13 @@ export async function handleProductExtrasModalSubmit(interaction: ModalSubmitInt
   const product = await getProductById(productId);
 
   if (!product || product.guild_id !== interaction.guildId) {
-    await interaction.reply({ content: '❌ Produto não encontrado ou pertence a outro servidor.', ephemeral: true });
+    await interaction.reply({ content: '❌ Produto não encontrado ou pertence a outro servidor.', flags: 64 });
     return;
   }
 
   const extras = mapExtras(interaction);
   if ('error' in extras) {
-    await interaction.reply({ content: extras.error, ephemeral: true });
+    await interaction.reply({ content: extras.error, flags: 64 });
     return;
   }
 
@@ -571,7 +571,7 @@ export async function handleProductActionButton(interaction: ButtonInteraction) 
     const product = await getProductById(productId);
 
     if (!product || product.guild_id !== interaction.guildId) {
-      await interaction.reply({ content: '❌ Produto não encontrado ou pertence a outro servidor.', ephemeral: true });
+      await interaction.reply({ content: '❌ Produto não encontrado ou pertence a outro servidor.', flags: 64 });
       return;
     }
 

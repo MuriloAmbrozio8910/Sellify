@@ -118,7 +118,7 @@ async function handleSlashCommand(interaction: ChatInputCommandInteraction) {
     if (interaction.deferred || interaction.replied) {
       await interaction.editReply({ content: errorMessage });
     } else {
-      await interaction.reply({ content: errorMessage, ephemeral: true });
+      await interaction.reply({ content: errorMessage, flags: 64 });
     }
   }
 }
@@ -151,6 +151,7 @@ async function handleButton(interaction: ButtonInteraction) {
         customId.startsWith('logs_') ||
         customId.startsWith('help_') ||
         customId.startsWith('task_') ||
+        customId.startsWith('reviews_') ||
         customId.startsWith('tickets_view') ||
         customId.startsWith('tickets_create')) {
       await handlePanelButton(interaction);
@@ -235,7 +236,7 @@ async function handleButton(interaction: ButtonInteraction) {
     if (interaction.deferred || interaction.replied) {
       await interaction.editReply({ content: `❌ ${errorMessage}` });
     } else {
-      await interaction.reply({ content: `❌ ${errorMessage}`, ephemeral: true });
+      await interaction.reply({ content: `❌ ${errorMessage}`, flags: 64 });
     }
   }
 }
@@ -265,7 +266,7 @@ async function handleSelectMenu(interaction: StringSelectMenuInteraction) {
     if (interaction.deferred || interaction.replied) {
       await interaction.editReply({ content: '❌ Erro ao processar seleção.' });
     } else {
-      await interaction.reply({ content: '❌ Erro ao processar seleção.', ephemeral: true });
+      await interaction.reply({ content: '❌ Erro ao processar seleção.', flags: 64 });
     }
   }
 }
@@ -344,7 +345,7 @@ async function handleModal(interaction: any) {
     if (interaction.deferred || interaction.replied) {
       await interaction.editReply({ content: '❌ Erro ao processar formulário.' });
     } else {
-      await interaction.reply({ content: '❌ Erro ao processar formulário.', ephemeral: true });
+      await interaction.reply({ content: '❌ Erro ao processar formulário.', flags: 64 });
     }
   }
 }
@@ -573,7 +574,7 @@ async function handleCancelDelete(interaction: ButtonInteraction) {
 async function handleManualPayment(interaction: ButtonInteraction) {
   // Verificar se o usuário é admin
   if (!interaction.memberPermissions?.has('Administrator')) {
-    await interaction.reply({ content: '❌ Apenas administradores podem confirmar pagamentos manualmente.', ephemeral: true });
+    await interaction.reply({ content: '❌ Apenas administradores podem confirmar pagamentos manualmente.', flags: 64 });
     return;
   }
 
@@ -680,7 +681,7 @@ async function handleCatalogProductClick(interaction: ButtonInteraction) {
 async function handleCatalogCategoryClick(interaction: ButtonInteraction) {
   await interaction.reply({
     content: '🔄 Funcionalidade de categorias em desenvolvimento!',
-    ephemeral: true
+    flags: 64
   });
 }
 

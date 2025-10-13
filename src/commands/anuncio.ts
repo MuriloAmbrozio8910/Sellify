@@ -189,17 +189,21 @@ async function handleScheduleAnnouncement(interaction: ChatInputCommandInteracti
       }
     );
 
+    // Limitar tamanhos para evitar erros do Discord
+    const titlePreview = title.length > 256 ? title.substring(0, 253) + '...' : title;
+    const idPreview = announcement.id.substring(0, 8);
+
     const embed = new EmbedBuilder()
       .setColor('#FFA500')
       .setTitle('⏰ Anúncio Agendado!')
       .setDescription(`O anúncio será enviado automaticamente na data e hora especificadas.`)
       .addFields(
-        { name: 'Título', value: title, inline: false },
+        { name: 'Título', value: titlePreview, inline: false },
         { name: 'Canal', value: channel.toString(), inline: true },
         { name: 'Data/Hora', value: scheduledDate.toLocaleString('pt-BR'), inline: true },
-        { name: 'ID', value: announcement.id, inline: true }
+        { name: 'ID', value: idPreview, inline: true }
       )
-      .setFooter({ text: 'Use /anuncio cancelar para cancelar este agendamento' })
+      .setFooter({ text: 'Use /anuncio cancelar para cancelar' })
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
@@ -236,8 +240,13 @@ async function handleListAnnouncements(interaction: ChatInputCommandInteraction)
                          announcement.status === AnnouncementStatus.SCHEDULED ? '⏰' :
                          announcement.status === AnnouncementStatus.CANCELLED ? '❌' : '📝';
 
+      // Limitar título para evitar erro (limite de 256 caracteres para field name)
+      const titlePreview = announcement.title.length > 200 
+        ? announcement.title.substring(0, 197) + '...' 
+        : announcement.title;
+
       embed.addFields({
-        name: `${statusEmoji} ${announcement.title}`,
+        name: `${statusEmoji} ${titlePreview}`,
         value: 
           `**ID:** \`${announcement.id.slice(0, 8)}\`\n` +
           `**Status:** ${announcement.status}\n` +
@@ -289,15 +298,19 @@ async function handleBroadcast(interaction: ChatInputCommandInteraction) {
   const content = interaction.options.getString('conteudo', true);
   const targetRole = interaction.options.getRole('role_alvo');
 
+  // Validar tamanhos
+  const titlePreview = title.length > 50 ? title.substring(0, 50) + '...' : title;
+  const contentPreview = content.length > 100 ? content.substring(0, 100) + '...' : content;
+
   // Confirmação
   const confirmEmbed = new EmbedBuilder()
     .setColor('#FFA500')
     .setTitle('⚠️ Confirmação de Broadcast')
     .setDescription(
-      `Você está prestes a enviar uma mensagem DM para ${targetRole ? `todos os membros com a role ${targetRole}` : 'TODOS os membros do servidor'}.\n\n` +
-      `**Título:** ${title}\n` +
-      `**Conteúdo:** ${content.substring(0, 100)}${content.length > 100 ? '...' : ''}\n\n` +
-      `**⚠️ ATENÇÃO:** Esta ação não pode ser desfeita e pode resultar em muitos membros bloqueando o bot!`
+      `Você está prestes a enviar uma mensagem DM para ${targetRole ? `membros com role ${targetRole.name}` : 'TODOS os membros'}.\n\n` +
+      `**Título:** ${titlePreview}\n` +
+      `**Conteúdo:** ${contentPreview}\n\n` +
+      `**⚠️ ATENÇÃO:** Esta ação não pode ser desfeita!`
     );
 
   const row = new ActionRowBuilder<ButtonBuilder>()

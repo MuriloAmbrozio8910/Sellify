@@ -18,7 +18,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({
       content: '❌ Você precisa ser administrador para criar cupons.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }

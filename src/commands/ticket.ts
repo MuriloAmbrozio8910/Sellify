@@ -163,7 +163,7 @@ async function handleListTickets(interaction: ChatInputCommandInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) {
     await interaction.reply({
       content: '❌ Você precisa de permissão de moderador para ver todos os tickets.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
@@ -221,7 +221,7 @@ async function handleTicketStats(interaction: ChatInputCommandInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) {
     await interaction.reply({
       content: '❌ Você precisa de permissão de moderador para ver estatísticas.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
@@ -262,7 +262,7 @@ async function handleConfigTickets(interaction: ChatInputCommandInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({
       content: '❌ Apenas administradores podem configurar o sistema de tickets.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
@@ -334,7 +334,7 @@ async function handleConfigTickets(interaction: ChatInputCommandInteraction) {
   await interaction.reply({
     embeds: [embed],
     components: [row1, row2, row3],
-    ephemeral: true
+    flags: 64
   });
 }
 
@@ -343,7 +343,7 @@ async function handleSetupTickets(interaction: ChatInputCommandInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({
       content: '❌ Apenas administradores podem personalizar o sistema de tickets.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
@@ -443,7 +443,7 @@ async function handleSetupTickets(interaction: ChatInputCommandInteraction) {
   await interaction.reply({
     embeds: [embed],
     components: [row1, row2, row3, row4],
-    ephemeral: true
+    flags: 64
   });
 }
 
@@ -452,7 +452,7 @@ async function handleCreatePanel(interaction: ChatInputCommandInteraction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({
       content: '❌ Apenas administradores podem criar painéis.',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
