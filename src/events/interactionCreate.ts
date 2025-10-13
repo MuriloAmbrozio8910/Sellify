@@ -35,7 +35,8 @@ import {
   handleTicketCreationButton,
   handleTicketModal,
   handleTicketActionButton,
-  handleBroadcastConfirmation
+  handleBroadcastConfirmation,
+  handleCreateTicketPanelModal
 } from './panelHandlers';
 import {
   showAddProductModal,
@@ -260,6 +261,10 @@ async function handleModal(interaction: any) {
     // Modal de anúncios
     else if (customId.startsWith('create_announcement_modal_')) {
       await handleCreateAnnouncementModalSubmit(interaction);
+    }
+    // Modal de criar painel de tickets
+    else if (customId === 'create_ticket_panel_modal') {
+      await handleCreateTicketPanelModal(interaction);
     }
   } catch (error) {
     logger.error(`Erro ao processar modal: ${error}`);
