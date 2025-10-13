@@ -18,7 +18,7 @@ import { claimTicket, closeTicket, createTicket, getTicketStats, listTickets } f
 import { sendBroadcastDM, listAnnouncements } from '../utils/announcementManager';
 import { getAIUsageStats } from '../utils/aiService';
 import { logger } from '../utils/logger';
-import { getOrCreateGuildConfig, supabase } from '../utils/supabase';
+import { getOrCreateGuildConfig, supabase, updateGuildConfig } from '../utils/supabase';
 import { TicketPriority, TransactionStatus } from '../types';
 
 /**
@@ -169,6 +169,16 @@ export async function handlePanelButton(interaction: ButtonInteraction) {
   }
   else if (customId === 'help_support') {
     await handleHelpSupport(interaction);
+  }
+  // Botões de Tarefas
+  else if (customId === 'task_cleanup') {
+    await handleTaskCleanup(interaction);
+  }
+  else if (customId === 'task_reports') {
+    await handleTaskReports(interaction);
+  }
+  else if (customId === 'task_list') {
+    await handleTaskList(interaction);
   }
 }
 
@@ -1142,12 +1152,72 @@ async function handleStatsProducts(interaction: ButtonInteraction) {
 }
 
 async function handleStatsUsers(interaction: ButtonInteraction) {
-  await interaction.reply({
-    content: '📊 **Estatísticas por Usuários**\n\n' +
-             'Esta funcionalidade mostrará o ranking de compradores, total gasto por usuário e muito mais.\n\n' +
-             '🚧 Em desenvolvimento...',
-    ephemeral: true
-  });
+  await interaction.deferReply({ ephemeral: true });
+
+  try {
+    const { data: transactions, error } = await supabase
+      .from('transactions')
+      .select('user_id, amount, status')
+      .eq('guild_id', interaction.guildId!)
+      .eq('status', 'completed');
+
+    if (error || !transactions || transactions.length === 0) {
+      await interaction.editReply('❌ Nenhuma transação completada encontrada.');
+      return;
+    }
+
+    // Agrupar por usuário
+    const userStats: { [key: string]: { count: number; total: number } } = {};
+    
+    for (const transaction of transactions) {
+      const userId = transaction.user_id;
+      if (!userStats[userId]) {
+        userStats[userId] = { count: 0, total: 0 };
+      }
+      userStats[userId].count++;
+      userStats[userId].total += transaction.amount;
+    }
+
+    // Ordenar por total gasto
+    const sortedUsers = Object.entries(userStats)
+      .sort(([, a], [, b]) => b.total - a.total)
+      .slice(0, 10);
+
+    const { formatCurrency } = await import('../utils/payments');
+    const config = await getOrCreateGuildConfig(interaction.guildId!);
+
+    const embed = new EmbedBuilder()
+      .setColor('#9B59B6')
+      .setTitle('👥 Top 10 Compradores')
+      .setDescription('Usuários que mais compraram no servidor')
+      .setTimestamp();
+
+    sortedUsers.forEach(([userId, stats], index) => {
+      const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+      
+      embed.addFields({
+        name: `${medal} <@${userId}>`,
+        value: 
+          `🛒 ${stats.count} compras\n` +
+          `💰 ${formatCurrency(stats.total, config.currency)} gastos`,
+        inline: true
+      });
+    });
+
+    const row = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('panel_stats')
+          .setLabel('◀️ Voltar')
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+    await interaction.editReply({ embeds: [embed], components: [row] });
+  } catch (error: any) {
+    await interaction.editReply({
+      content: `❌ ${error.message || 'Erro ao buscar estatísticas.'}`
+    });
+  }
 }
 
 /**
@@ -1220,30 +1290,417 @@ async function handleAnnouncementsScheduled(interaction: ButtonInteraction) {
  */
 
 async function handleAutomationsRoles(interaction: ButtonInteraction) {
-  await interaction.reply({
-    content: '👥 **Auto Roles**\n\n' +
-             'Configure roles automáticas para novos membros ou baseadas em ações.\n\n' +
-             '🚧 Funcionalidade em desenvolvimento...',
-    ephemeral: true
-  });
+  const modal = new ModalBuilder()
+    .setCustomId('automation_autorole_modal')
+    .setTitle('⚙️ Configurar Auto Role');
+
+  const roleIdInput = new TextInputBuilder()
+    .setCustomId('role_id')
+    .setLabel('ID da Role para atribuir automaticamente')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('Cole o ID da role aqui')
+    .setRequired(true);
+
+  const enabledInput = new TextInputBuilder()
+    .setCustomId('enabled')
+    .setLabel('Ativar auto role? (sim/nao)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('sim')
+    .setRequired(true)
+    .setValue('sim');
+
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(roleIdInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(enabledInput)
+  );
+
+  await interaction.showModal(modal);
 }
 
 async function handleAutomationsMessages(interaction: ButtonInteraction) {
-  await interaction.reply({
-    content: '💬 **Mensagens Automáticas**\n\n' +
-             'Configure mensagens de boas-vindas, despedida e periódicas.\n\n' +
-             '🚧 Funcionalidade em desenvolvimento...',
-    ephemeral: true
-  });
+  const modal = new ModalBuilder()
+    .setCustomId('automation_welcome_modal')
+    .setTitle('💬 Mensagem de Boas-vindas');
+
+  const channelIdInput = new TextInputBuilder()
+    .setCustomId('channel_id')
+    .setLabel('ID do Canal para enviar mensagens')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('Cole o ID do canal aqui')
+    .setRequired(true);
+
+  const messageInput = new TextInputBuilder()
+    .setCustomId('welcome_message')
+    .setLabel('Mensagem de boas-vindas')
+    .setStyle(TextInputStyle.Paragraph)
+    .setPlaceholder('Bem-vindo {user} ao servidor! 🎉')
+    .setRequired(true)
+    .setMaxLength(1000);
+
+  const enabledInput = new TextInputBuilder()
+    .setCustomId('enabled')
+    .setLabel('Ativar mensagens automáticas? (sim/nao)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('sim')
+    .setRequired(true)
+    .setValue('sim');
+
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(channelIdInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(messageInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(enabledInput)
+  );
+
+  await interaction.showModal(modal);
 }
 
 async function handleAutomationsTasks(interaction: ButtonInteraction) {
-  await interaction.reply({
-    content: '⚙️ **Tarefas Automáticas**\n\n' +
-             'Configure tarefas programadas como limpeza de canais, backups e mais.\n\n' +
-             '🚧 Funcionalidade em desenvolvimento...',
-    ephemeral: true
-  });
+  const embed = new EmbedBuilder()
+    .setColor('#00CED1')
+    .setTitle('⚙️ Tarefas Programadas')
+    .setDescription(
+      'Configure tarefas automáticas recorrentes.\n\n' +
+      '**Tarefas Disponíveis:**'
+    )
+    .addFields(
+      { name: '🧹 Limpeza de Canais', value: 'Remove mensagens antigas automaticamente', inline: false },
+      { name: '📊 Relatórios Automáticos', value: 'Gera relatórios de vendas periodicamente', inline: false },
+      { name: '💾 Backup de Dados', value: 'Faz backup dos dados do servidor', inline: false },
+      { name: '📢 Anúncios Recorrentes', value: 'Envia anúncios em intervalos regulares', inline: false }
+    )
+    .setFooter({ text: 'Use os botões abaixo para configurar' });
+
+  const row1 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('task_cleanup')
+        .setLabel('Limpeza de Canais')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🧹'),
+      new ButtonBuilder()
+        .setCustomId('task_reports')
+        .setLabel('Relatórios')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('📊')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('task_list')
+        .setLabel('Ver Tarefas Ativas')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📋'),
+      new ButtonBuilder()
+        .setCustomId('panel_automations')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.reply({ embeds: [embed], components: [row1, row2], ephemeral: true });
+}
+
+/**
+ * Handlers de botões de tarefas
+ */
+async function handleTaskCleanup(interaction: ButtonInteraction) {
+  const modal = new ModalBuilder()
+    .setCustomId('task_cleanup_modal')
+    .setTitle('🧹 Configurar Limpeza');
+
+  const channelIdInput = new TextInputBuilder()
+    .setCustomId('channel_id')
+    .setLabel('ID do Canal para limpar')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('Cole o ID do canal')
+    .setRequired(true);
+
+  const daysInput = new TextInputBuilder()
+    .setCustomId('days_old')
+    .setLabel('Deletar mensagens mais antigas que (dias)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('7')
+    .setRequired(true);
+
+  const intervalInput = new TextInputBuilder()
+    .setCustomId('interval')
+    .setLabel('Intervalo de execução (horas)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('24')
+    .setRequired(true);
+
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(channelIdInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(daysInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(intervalInput)
+  );
+
+  await interaction.showModal(modal);
+}
+
+async function handleTaskReports(interaction: ButtonInteraction) {
+  const modal = new ModalBuilder()
+    .setCustomId('task_reports_modal')
+    .setTitle('📊 Configurar Relatórios');
+
+  const channelIdInput = new TextInputBuilder()
+    .setCustomId('channel_id')
+    .setLabel('ID do Canal para enviar relatórios')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('Cole o ID do canal')
+    .setRequired(true);
+
+  const intervalInput = new TextInputBuilder()
+    .setCustomId('interval')
+    .setLabel('Intervalo (diario/semanal/mensal)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('semanal')
+    .setRequired(true);
+
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(channelIdInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(intervalInput)
+  );
+
+  await interaction.showModal(modal);
+}
+
+async function handleTaskList(interaction: ButtonInteraction) {
+  await interaction.deferReply({ ephemeral: true });
+
+  try {
+    const { data: tasks, error } = await supabase
+      .from('automation_tasks')
+      .select('*')
+      .eq('guild_id', interaction.guildId!)
+      .eq('is_active', true);
+
+    if (error || !tasks || tasks.length === 0) {
+      await interaction.editReply('❌ Nenhuma tarefa ativa encontrada.');
+      return;
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor('#00CED1')
+      .setTitle('📋 Tarefas Ativas')
+      .setDescription(`Total: **${tasks.length}** tarefas`)
+      .setTimestamp();
+
+    for (const task of tasks.slice(0, 10)) {
+      const taskType = task.task_type === 'cleanup' ? '🧹 Limpeza' : 
+                       task.task_type === 'report' ? '📊 Relatório' : 
+                       task.task_type === 'backup' ? '💾 Backup' : '⚙️ Tarefa';
+      
+      embed.addFields({
+        name: taskType,
+        value: 
+          `📍 Canal: <#${task.channel_id}>\n` +
+          `⏰ Intervalo: ${task.interval_hours}h\n` +
+          `📅 Próxima execução: <t:${Math.floor(new Date(task.next_run).getTime() / 1000)}:R>`,
+        inline: false
+      });
+    }
+
+    const row = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('panel_automations')
+          .setLabel('◀️ Voltar')
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+    await interaction.editReply({ embeds: [embed], components: [row] });
+  } catch (error: any) {
+    await interaction.editReply({
+      content: `❌ ${error.message || 'Erro ao buscar tarefas.'}`
+    });
+  }
+}
+
+/**
+ * Handlers para modais de automação
+ */
+export async function handleAutomationAutoRoleModal(interaction: any) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const roleId = interaction.fields.getTextInputValue('role_id');
+  const enabled = interaction.fields.getTextInputValue('enabled').toLowerCase() === 'sim';
+
+  try {
+    const role = interaction.guild!.roles.cache.get(roleId);
+    
+    if (!role) {
+      await interaction.editReply({
+        content: '❌ Role não encontrada. Verifique o ID e tente novamente.'
+      });
+      return;
+    }
+
+    // Salvar configuração em uma tabela customizada (automation_config)
+    const { error } = await supabase
+      .from('automation_config')
+      .upsert({
+        guild_id: interaction.guildId!,
+        config_type: 'auto_role',
+        config_data: { role_id: roleId, enabled: enabled },
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'guild_id,config_type' });
+
+    if (error) throw new Error(error.message);
+
+    await interaction.editReply({
+      content: enabled 
+        ? `✅ Auto role configurada! Novos membros receberão automaticamente: ${role}\n\n⚠️ **Nota:** O bot precisa estar online e ter permissão para atribuir roles.`
+        : '✅ Auto role desativada!'
+    });
+  } catch (error) {
+    logger.error(`Erro ao configurar auto role: ${error}`);
+    await interaction.editReply({
+      content: '❌ Erro ao salvar configuração. A tabela automation_config pode não existir no banco de dados.'
+    });
+  }
+}
+
+export async function handleAutomationWelcomeModal(interaction: any) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const channelId = interaction.fields.getTextInputValue('channel_id');
+  const message = interaction.fields.getTextInputValue('welcome_message');
+  const enabled = interaction.fields.getTextInputValue('enabled').toLowerCase() === 'sim';
+
+  try {
+    const channel = interaction.guild!.channels.cache.get(channelId);
+    
+    if (!channel) {
+      await interaction.editReply({
+        content: '❌ Canal não encontrado. Verifique o ID e tente novamente.'
+      });
+      return;
+    }
+
+    // Salvar configuração em uma tabela customizada (automation_config)
+    const { error } = await supabase
+      .from('automation_config')
+      .upsert({
+        guild_id: interaction.guildId!,
+        config_type: 'welcome_message',
+        config_data: { channel_id: channelId, message: message, enabled: enabled },
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'guild_id,config_type' });
+
+    if (error) throw new Error(error.message);
+
+    await interaction.editReply({
+      content: enabled 
+        ? `✅ Mensagens de boas-vindas configuradas!\n\n**Canal:** ${channel}\n**Mensagem:** ${message}\n\n⚠️ **Nota:** O bot precisa estar online para enviar as mensagens.`
+        : '✅ Mensagens de boas-vindas desativadas!'
+    });
+  } catch (error) {
+    logger.error(`Erro ao configurar mensagens: ${error}`);
+    await interaction.editReply({
+      content: '❌ Erro ao salvar configuração. A tabela automation_config pode não existir no banco de dados.'
+    });
+  }
+}
+
+export async function handleTaskCleanupModal(interaction: any) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const channelId = interaction.fields.getTextInputValue('channel_id');
+  const daysOld = parseInt(interaction.fields.getTextInputValue('days_old'));
+  const interval = parseInt(interaction.fields.getTextInputValue('interval'));
+
+  try {
+    const channel = interaction.guild!.channels.cache.get(channelId);
+    
+    if (!channel) {
+      await interaction.editReply({
+        content: '❌ Canal não encontrado. Verifique o ID e tente novamente.'
+      });
+      return;
+    }
+
+    const nextRun = new Date();
+    nextRun.setHours(nextRun.getHours() + interval);
+
+    const { error } = await supabase
+      .from('automation_tasks')
+      .insert([{
+        guild_id: interaction.guildId!,
+        task_type: 'cleanup',
+        channel_id: channelId,
+        config: { days_old: daysOld },
+        interval_hours: interval,
+        next_run: nextRun.toISOString(),
+        is_active: true
+      }]);
+
+    if (error) throw new Error(error.message);
+
+    await interaction.editReply({
+      content: `✅ Tarefa de limpeza criada!\n\n` +
+               `**Canal:** ${channel}\n` +
+               `**Deletar mensagens:** > ${daysOld} dias\n` +
+               `**Intervalo:** A cada ${interval}h\n` +
+               `**Próxima execução:** <t:${Math.floor(nextRun.getTime() / 1000)}:R>`
+    });
+  } catch (error: any) {
+    logger.error(`Erro ao criar tarefa: ${error}`);
+    await interaction.editReply({
+      content: `❌ ${error.message || 'Erro ao criar tarefa.'}`
+    });
+  }
+}
+
+export async function handleTaskReportsModal(interaction: any) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const channelId = interaction.fields.getTextInputValue('channel_id');
+  const intervalType = interaction.fields.getTextInputValue('interval').toLowerCase();
+
+  const intervalHours = intervalType === 'diario' ? 24 : 
+                        intervalType === 'semanal' ? 168 : 
+                        intervalType === 'mensal' ? 720 : 168;
+
+  try {
+    const channel = interaction.guild!.channels.cache.get(channelId);
+    
+    if (!channel) {
+      await interaction.editReply({
+        content: '❌ Canal não encontrado. Verifique o ID e tente novamente.'
+      });
+      return;
+    }
+
+    const nextRun = new Date();
+    nextRun.setHours(nextRun.getHours() + intervalHours);
+
+    const { error } = await supabase
+      .from('automation_tasks')
+      .insert([{
+        guild_id: interaction.guildId!,
+        task_type: 'report',
+        channel_id: channelId,
+        config: { report_type: 'sales' },
+        interval_hours: intervalHours,
+        next_run: nextRun.toISOString(),
+        is_active: true
+      }]);
+
+    if (error) throw new Error(error.message);
+
+    await interaction.editReply({
+      content: `✅ Relatórios automáticos configurados!\n\n` +
+               `**Canal:** ${channel}\n` +
+               `**Frequência:** ${intervalType}\n` +
+               `**Próximo relatório:** <t:${Math.floor(nextRun.getTime() / 1000)}:R>`
+    });
+  } catch (error: any) {
+    logger.error(`Erro ao criar tarefa: ${error}`);
+    await interaction.editReply({
+      content: `❌ ${error.message || 'Erro ao criar tarefa.'}`
+    });
+  }
 }
 
 /**

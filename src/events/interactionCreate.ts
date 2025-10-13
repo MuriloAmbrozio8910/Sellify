@@ -36,7 +36,11 @@ import {
   handleTicketModal,
   handleTicketActionButton,
   handleBroadcastConfirmation,
-  handleCreateTicketPanelModal
+  handleCreateTicketPanelModal,
+  handleAutomationAutoRoleModal,
+  handleAutomationWelcomeModal,
+  handleTaskCleanupModal,
+  handleTaskReportsModal
 } from './panelHandlers';
 import {
   showAddProductModal,
@@ -130,6 +134,7 @@ async function handleButton(interaction: ButtonInteraction) {
         customId.startsWith('config_') ||
         customId.startsWith('logs_') ||
         customId.startsWith('help_') ||
+        customId.startsWith('task_') ||
         customId.startsWith('tickets_view') ||
         customId.startsWith('tickets_create')) {
       await handlePanelButton(interaction);
@@ -277,6 +282,22 @@ async function handleModal(interaction: any) {
     // Modal de criar painel de tickets
     else if (customId === 'create_ticket_panel_modal') {
       await handleCreateTicketPanelModal(interaction);
+    }
+    // Modal de auto role
+    else if (customId === 'automation_autorole_modal') {
+      await handleAutomationAutoRoleModal(interaction);
+    }
+    // Modal de mensagens de boas-vindas
+    else if (customId === 'automation_welcome_modal') {
+      await handleAutomationWelcomeModal(interaction);
+    }
+    // Modal de tarefa de limpeza
+    else if (customId === 'task_cleanup_modal') {
+      await handleTaskCleanupModal(interaction);
+    }
+    // Modal de relatórios
+    else if (customId === 'task_reports_modal') {
+      await handleTaskReportsModal(interaction);
     }
   } catch (error) {
     logger.error(`Erro ao processar modal: ${error}`);
