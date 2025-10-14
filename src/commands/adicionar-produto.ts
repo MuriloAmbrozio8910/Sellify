@@ -15,15 +15,12 @@ export const data = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  // Verificar permissão de administrador
-  if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-    await interaction.reply({
-      content: '❌ Você precisa de permissão de administrador para adicionar produtos.',
-      flags: 64
-    });
-    return;
-  }
-
-  // Mostrar modal para entrada de dados
-  await showAddProductModal(interaction);
+  // Comando deprecado - redirecionar para o painel
+  const { showDeprecationMessage } = await import('./deprecated');
+  await showDeprecationMessage(
+    interaction,
+    'adicionar-produto',
+    'Criar Produto',
+    'Produtos'
+  );
 }

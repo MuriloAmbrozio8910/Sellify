@@ -51,6 +51,13 @@ import {
   handleTicketConfigModal
 } from './ticketConfigHandlers';
 import {
+  handleSalesConfigButton,
+  handleSalesConfigModal
+} from './salesConfigHandlers';
+import {
+  handlePublicPanelButton
+} from './publicPanelHandlers';
+import {
   showAddProductModal,
   handleAddProductModalSubmit,
   handleEditProductModalSubmit,
@@ -130,9 +137,17 @@ async function handleButton(interaction: ButtonInteraction) {
   const customId = interaction.customId;
 
   try {
+    // Botões públicos (para usuários finais)
+    if (customId.startsWith('public_')) {
+      await handlePublicPanelButton(interaction);
+    }
     // Botões de configuração de tickets
-    if (customId.startsWith('config_ticket_')) {
+    else if (customId.startsWith('config_ticket_')) {
       await handleTicketConfigButton(interaction);
+    }
+    // Botões de configuração de vendas
+    else if (customId.startsWith('config_sales_')) {
+      await handleSalesConfigButton(interaction);
     }
     // Botões de customização
     else if (customId.startsWith('customize_')) {
@@ -153,7 +168,9 @@ async function handleButton(interaction: ButtonInteraction) {
         customId.startsWith('task_') ||
         customId.startsWith('reviews_') ||
         customId.startsWith('tickets_view') ||
-        customId.startsWith('tickets_create')) {
+        customId.startsWith('tickets_create') ||
+        customId.startsWith('settings_') ||
+        customId.startsWith('custom_')) {
       await handlePanelButton(interaction);
     }
     // Criação de tickets do painel
@@ -329,6 +346,10 @@ async function handleModal(interaction: any) {
     // Modais de configuração de tickets
     else if (customId.startsWith('modal_config_ticket_')) {
       await handleTicketConfigModal(interaction);
+    }
+    // Modais de configuração de vendas
+    else if (customId.startsWith('modal_config_sales_')) {
+      await handleSalesConfigModal(interaction);
     }
     // Modais de avaliação
     else if (customId.startsWith('review_product_modal_')) {

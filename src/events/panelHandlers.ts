@@ -12,7 +12,8 @@ import {
   TextInputBuilder,
   TextInputStyle,
   PermissionFlagsBits,
-  ChannelType
+  ChannelType,
+  HexColorString
 } from 'discord.js';
 import { claimTicket, closeTicket, createTicket, getTicketStats, listTickets } from '../utils/ticketManager';
 import { sendBroadcastDM, listAnnouncements } from '../utils/announcementManager';
@@ -65,6 +66,12 @@ export async function handlePanelButton(interaction: ButtonInteraction) {
   else if (customId === 'panel_config') {
     await handleConfigPanel(interaction);
   }
+  else if (customId === 'panel_settings') {
+    await handleSettingsPanel(interaction);
+  }
+  else if (customId === 'panel_customization') {
+    await handleCustomizationPanel(interaction);
+  }
   else if (customId === 'panel_logs') {
     await handleLogsPanel(interaction);
   }
@@ -103,6 +110,17 @@ export async function handlePanelButton(interaction: ButtonInteraction) {
   }
   else if (customId === 'sales_top_products') {
     await handleSalesTopProducts(interaction);
+  }
+  else if (customId === 'sales_config') {
+    await handleSalesConfigPanel(interaction);
+  }
+  // Botões de Configurações
+  else if (customId.startsWith('settings_')) {
+    await handleSettingsButton(interaction, customId);
+  }
+  // Botões de Personalização
+  else if (customId.startsWith('custom_')) {
+    await handleCustomButton(interaction, customId);
   }
   // Botões de Estatísticas
   else if (customId === 'stats_general') {
@@ -249,11 +267,13 @@ async function handlePanelRefresh(interaction: ButtonInteraction) {
 }
 
 /**
- * Voltar ao painel principal
+ * Voltar ao painel principal (MODERNIZADO)
  */
 async function handleBackToMainPanel(interaction: ButtonInteraction) {
   await interaction.deferUpdate();
 
+  const { COLORS, EMOJIS, formatters, DIVIDERS } = await import('../utils/designSystem');
+  
   const guildId = interaction.guildId!;
   const config = await getOrCreateGuildConfig(guildId);
   const ticketStats = await getTicketStats(guildId);
@@ -279,62 +299,64 @@ async function handleBackToMainPanel(interaction: ButtonInteraction) {
 
   const { formatCurrency } = await import('../utils/payments');
 
-  // Embed principal moderno e elegante
+  // Calcular estatísticas
+  const onlineMembers = interaction.guild!.members.cache.filter(m => m.presence?.status !== 'offline').size;
+  const botMembers = interaction.guild!.members.cache.filter(m => m.user.bot).size;
+  const humanMembers = interaction.guild!.memberCount - botMembers;
+
+  // Embed principal MODERNIZADO
   const embed = new EmbedBuilder()
-    .setColor('#2F3136')
-    .setTitle('✨ Painel de Gerenciamento - Sellify')
+    .setColor(COLORS.PRIMARY)
+    .setAuthor({ 
+      name: `Painel de Gerenciamento • ${interaction.guild!.name}`,
+      iconURL: interaction.guild!.iconURL() || undefined
+    })
+    .setTitle(`${EMOJIS.SPARKLES} Bem-vindo, ${interaction.user.username}!`)
     .setDescription(
-      `╔════════════════════════════════════╗\n` +
-      `  Bem-vindo, **${interaction.user.username}**!\n` +
-      `  Gerencie seu servidor com facilidade\n` +
-      `╚════════════════════════════════════╝`
+      `${EMOJIS.INFO} **Central de Controle do Sellify**\n` +
+      `Gerencie todos os aspectos do seu servidor de forma intuitiva e profissional.\n\n` +
+      `${DIVIDERS.THIN}`
     )
     .addFields(
       {
-        name: '\u200b',
-        value: '**📊 ESTATÍSTICAS DO SERVIDOR**',
+        name: `${EMOJIS.STATS} Estatísticas em Tempo Real`,
+        value: '\u200b',
         inline: false
       },
       {
-        name: '👥 Comunidade',
+        name: `${EMOJIS.USER} Comunidade`,
         value: 
-          `\`\`\`\n` +
-          `Membros: ${interaction.guild!.memberCount}\n` +
-          `Online: ${interaction.guild!.members.cache.filter(m => m.presence?.status !== 'offline').size}\n` +
-          `Bots: ${interaction.guild!.members.cache.filter(m => m.user.bot).size}\n` +
-          `\`\`\``,
+          `**${formatters.number(humanMembers)}** membros\n` +
+          `${EMOJIS.SUCCESS} **${formatters.number(onlineMembers)}** online\n` +
+          `${EMOJIS.ROBOT} **${formatters.number(botMembers)}** bots`,
         inline: true
       },
       {
-        name: '💰 Vendas',
+        name: `${EMOJIS.MONEY} Vendas`,
         value:
-          `\`\`\`\n` +
-          `Total: ${formatCurrency(totalSales, config.currency)}\n` +
-          `Transações: ${salesCount}\n` +
-          `Produtos: ${productsCount}\n` +
-          `\`\`\``,
+          `**${formatCurrency(totalSales, config.currency)}** receita\n` +
+          `${EMOJIS.CHART} **${formatters.number(salesCount)}** transações\n` +
+          `${EMOJIS.PRODUCTS} **${formatters.number(productsCount)}** produtos`,
         inline: true
       },
       {
-        name: '🎫 Suporte',
+        name: `${EMOJIS.SUPPORT} Suporte`,
         value:
-          `\`\`\`\n` +
-          `Abertos: ${ticketStats?.open || 0}\n` +
-          `Atendendo: ${ticketStats?.claimed || 0}\n` +
-          `Fechados: ${ticketStats?.closed || 0}\n` +
-          `\`\`\``,
+          `${EMOJIS.PENDING} **${ticketStats?.open || 0}** abertos\n` +
+          `${EMOJIS.LOADING} **${ticketStats?.claimed || 0}** em atendimento\n` +
+          `${EMOJIS.DONE} **${ticketStats?.closed || 0}** resolvidos`,
         inline: true
       },
       {
         name: '\u200b',
-        value: '**⚡ ACESSO RÁPIDO**',
+        value: `${DIVIDERS.THIN}\n${EMOJIS.ROCKET} **Acesso Rápido às Funcionalidades**`,
         inline: false
       }
     )
     .setThumbnail(interaction.guild!.iconURL())
     .setFooter({ 
-      text: `${interaction.guild!.name} • Sistema Sellify`, 
-      iconURL: interaction.guild!.iconURL() || undefined 
+      text: `Sistema Sellify v2.0 • Última atualização`,
+      iconURL: 'https://cdn.discordapp.com/emojis/1234567890.png' // Placeholder
     })
     .setTimestamp();
 
@@ -345,22 +367,22 @@ async function handleBackToMainPanel(interaction: ButtonInteraction) {
         .setCustomId('panel_products')
         .setLabel('Produtos')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji('🛍️'),
+        .setEmoji(EMOJIS.PRODUCTS),
       new ButtonBuilder()
         .setCustomId('panel_sales')
         .setLabel('Vendas')
         .setStyle(ButtonStyle.Success)
-        .setEmoji('💰'),
+        .setEmoji(EMOJIS.SALES),
       new ButtonBuilder()
         .setCustomId('panel_coupons')
         .setLabel('Cupons')
         .setStyle(ButtonStyle.Success)
-        .setEmoji('🎟️'),
+        .setEmoji(EMOJIS.COUPONS),
       new ButtonBuilder()
         .setCustomId('panel_reviews')
         .setLabel('Avaliações')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji('⭐')
+        .setEmoji(EMOJIS.REVIEWS)
     );
 
   // Linha 2: Suporte e Comunicação
@@ -370,52 +392,62 @@ async function handleBackToMainPanel(interaction: ButtonInteraction) {
         .setCustomId('panel_tickets')
         .setLabel('Tickets')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji('🎫'),
+        .setEmoji(EMOJIS.TICKETS),
       new ButtonBuilder()
         .setCustomId('panel_announcements')
         .setLabel('Anúncios')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji('📢'),
+        .setEmoji(EMOJIS.ANNOUNCEMENT),
       new ButtonBuilder()
         .setCustomId('panel_automations')
         .setLabel('Automação')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🤖'),
+        .setEmoji(EMOJIS.ROBOT),
       new ButtonBuilder()
         .setCustomId('panel_ai')
-        .setLabel('Inteligência')
+        .setLabel('IA & Assistente')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🧠')
+        .setEmoji(EMOJIS.AI)
     );
 
-  // Linha 3: Análise e Configurações
+  // Linha 3: Análise e Ferramentas
   const row3 = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
         .setCustomId('panel_stats')
         .setLabel('Estatísticas')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji('📊'),
+        .setEmoji(EMOJIS.STATS),
       new ButtonBuilder()
         .setCustomId('panel_logs')
         .setLabel('Logs')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji('📋'),
+        .setEmoji(EMOJIS.LOG),
       new ButtonBuilder()
-        .setCustomId('panel_config')
-        .setLabel('Configurar')
+        .setCustomId('panel_settings')
+        .setLabel('Configurações')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji('⚙️'),
+        .setEmoji(EMOJIS.SETTINGS),
+      new ButtonBuilder()
+        .setCustomId('panel_customization')
+        .setLabel('Personalização')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🎨')
+    );
+
+  // Linha 4: Ações Rápidas
+  const row4 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
       new ButtonBuilder()
         .setCustomId('panel_refresh')
-        .setLabel('Atualizar')
+        .setLabel('Atualizar Painel')
         .setStyle(ButtonStyle.Success)
-        .setEmoji('🔄')
+        .setEmoji(EMOJIS.REFRESH)
     );
 
   await interaction.editReply({
     embeds: [embed],
-    components: [row1, row2, row3]
+    components: [row1, row2, row3, row4]
   });
 }
 
@@ -454,7 +486,7 @@ async function handleProductsPanel(interaction: ButtonInteraction) {
   const rowBack = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('panel_back_main')
+        .setCustomId('panel_main')
         .setLabel('◀️ Voltar')
         .setStyle(ButtonStyle.Secondary)
     );
@@ -488,13 +520,18 @@ async function handleSalesPanel(interaction: ButtonInteraction) {
         .setCustomId('sales_top_products')
         .setLabel('Top Produtos')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🏆')
+        .setEmoji('🏆'),
+      new ButtonBuilder()
+        .setCustomId('sales_config')
+        .setLabel('Configurar')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('⚙️')
     );
 
   const rowBack = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('panel_back_main')
+        .setCustomId('panel_main')
         .setLabel('◀️ Voltar')
         .setStyle(ButtonStyle.Secondary)
     );
@@ -532,7 +569,7 @@ async function handleCouponsPanel(interaction: ButtonInteraction) {
   const rowBack = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('panel_back_main')
+        .setCustomId('panel_main')
         .setLabel('◀️ Voltar')
         .setStyle(ButtonStyle.Secondary)
     );
@@ -575,7 +612,7 @@ async function handleStatsPanel(interaction: ButtonInteraction) {
   const rowBack = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('panel_back_main')
+        .setCustomId('panel_main')
         .setLabel('◀️ Voltar')
         .setStyle(ButtonStyle.Secondary)
     );
@@ -626,7 +663,7 @@ async function handleTicketsPanel(interaction: ButtonInteraction) {
   const rowBack = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('panel_back_main')
+        .setCustomId('panel_main')
         .setLabel('◀️ Voltar')
         .setStyle(ButtonStyle.Secondary)
     );
@@ -669,7 +706,7 @@ async function handleAnnouncementsPanel(interaction: ButtonInteraction) {
   const rowBack = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('panel_back_main')
+        .setCustomId('panel_main')
         .setLabel('◀️ Voltar')
         .setStyle(ButtonStyle.Secondary)
     );
@@ -712,7 +749,7 @@ async function handleAutomationsPanel(interaction: ButtonInteraction) {
   const rowBack = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('panel_back_main')
+        .setCustomId('panel_main')
         .setLabel('◀️ Voltar')
         .setStyle(ButtonStyle.Secondary)
     );
@@ -755,7 +792,7 @@ async function handleAIPanel(interaction: ButtonInteraction) {
   const rowBack = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('panel_back_main')
+        .setCustomId('panel_main')
         .setLabel('◀️ Voltar')
         .setStyle(ButtonStyle.Secondary)
     );
@@ -802,7 +839,7 @@ async function handleConfigPanel(interaction: ButtonInteraction) {
   const rowBack = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('panel_back_main')
+        .setCustomId('panel_main')
         .setLabel('◀️ Voltar')
         .setStyle(ButtonStyle.Secondary)
     );
@@ -845,7 +882,7 @@ async function handleLogsPanel(interaction: ButtonInteraction) {
   const rowBack = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('panel_back_main')
+        .setCustomId('panel_main')
         .setLabel('◀️ Voltar')
         .setStyle(ButtonStyle.Secondary)
     );
@@ -888,7 +925,7 @@ async function handleHelpPanel(interaction: ButtonInteraction) {
   const rowBack = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('panel_back_main')
+        .setCustomId('panel_main')
         .setLabel('◀️ Voltar')
         .setStyle(ButtonStyle.Secondary)
     );
@@ -1094,7 +1131,7 @@ async function handleViewAllTickets(interaction: ButtonInteraction) {
     const row = new ActionRowBuilder<ButtonBuilder>()
       .addComponents(
         new ButtonBuilder()
-          .setCustomId('panel_back_main')
+          .setCustomId('panel_main')
           .setLabel('◀️ Voltar')
           .setStyle(ButtonStyle.Secondary)
       );
@@ -2633,4 +2670,408 @@ async function handleReviewsPending(interaction: ButtonInteraction) {
     embeds: [embed],
     components: [row]
   });
+}
+
+/**
+ * Painel de Configuração de Vendas (similar ao de tickets)
+ */
+async function handleSalesConfigPanel(interaction: ButtonInteraction) {
+  await interaction.deferUpdate();
+
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+
+  const embed = new EmbedBuilder()
+    .setColor('#00FF00')
+    .setTitle('⚙️ Configuração do Sistema de Vendas')
+    .setDescription(
+      'Configure o sistema de vendas de forma rápida e intuitiva.\n\n' +
+      'Use os botões abaixo para configurar cada aspecto do sistema.'
+    )
+    .addFields(
+      { name: '📁 Categoria', value: 'Categoria para canais de vendas', inline: true },
+      { name: '📋 Canal de Logs', value: 'Registro de transações', inline: true },
+      { name: '💰 Moeda', value: 'Moeda padrão do servidor', inline: true },
+      { name: '🎨 Cor dos Embeds', value: 'Personalizar aparência', inline: true },
+      { name: '💳 Pagamentos', value: 'Métodos de pagamento', inline: true },
+      { name: '📄 Ver Configuração', value: 'Visualizar config atual', inline: true }
+    )
+    .setFooter({ text: 'Clique nos botões para configurar cada opção' })
+    .setTimestamp();
+
+  const row1 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('config_sales_category')
+        .setLabel('Categoria')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📁'),
+      new ButtonBuilder()
+        .setCustomId('config_sales_log_channel')
+        .setLabel('Canal de Logs')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📋'),
+      new ButtonBuilder()
+        .setCustomId('config_sales_currency')
+        .setLabel('Moeda')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('💰')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('config_sales_color')
+        .setLabel('Cor')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🎨'),
+      new ButtonBuilder()
+        .setCustomId('config_sales_payment')
+        .setLabel('Pagamentos')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('💳'),
+      new ButtonBuilder()
+        .setCustomId('config_sales_view')
+        .setLabel('Ver Configuração')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('📄')
+    );
+
+  const row3 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_sales')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [row1, row2, row3]
+  });
+}
+
+/**
+ * Painel Central de Configurações
+ */
+async function handleSettingsPanel(interaction: ButtonInteraction) {
+  await interaction.deferUpdate();
+
+  const embed = new EmbedBuilder()
+    .setColor('#607D8B')
+    .setAuthor({ 
+      name: 'Central de Configurações',
+      iconURL: interaction.guild!.iconURL() || undefined
+    })
+    .setTitle('⚙️ Configurações do Sistema')
+    .setDescription(
+      `Configure todos os aspectos do bot de forma centralizada e intuitiva.\n\n` +
+      `**Escolha uma categoria abaixo:**`
+    )
+    .addFields(
+      {
+        name: '\u200b',
+        value: '**🎯 CONFIGURAÇÕES PRINCIPAIS**',
+        inline: false
+      },
+      {
+        name: '💰 Sistema de Vendas',
+        value: 'Categoria, logs, moeda, pagamentos',
+        inline: true
+      },
+      {
+        name: '🎫 Sistema de Tickets',
+        value: 'Categoria, roles, mensagens, limites',
+        inline: true
+      },
+      {
+        name: '📢 Anúncios',
+        value: 'Canais, templates, agendamentos',
+        inline: true
+      },
+      {
+        name: '🔐 Permissões',
+        value: 'Roles administrativas e acessos',
+        inline: true
+      },
+      {
+        name: '🔔 Notificações',
+        value: 'Alertas, webhooks, logs',
+        inline: true
+      },
+      {
+        name: '🔌 Integrações',
+        value: 'APIs, webhooks, plugins',
+        inline: true
+      }
+    )
+    .setFooter({ text: 'Navegue pelos botões para configurar cada módulo' })
+    .setTimestamp();
+
+  const row1 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('sales_config')
+        .setLabel('Vendas')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('💰'),
+      new ButtonBuilder()
+        .setCustomId('config_ticket_view')
+        .setLabel('Tickets')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🎫'),
+      new ButtonBuilder()
+        .setCustomId('settings_announcements')
+        .setLabel('Anúncios')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📢')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('settings_permissions')
+        .setLabel('Permissões')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🔐'),
+      new ButtonBuilder()
+        .setCustomId('settings_notifications')
+        .setLabel('Notificações')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🔔'),
+      new ButtonBuilder()
+        .setCustomId('settings_integrations')
+        .setLabel('Integrações')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🔌')
+    );
+
+  const row3 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('settings_modules')
+        .setLabel('Gerenciar Módulos')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📦'),
+      new ButtonBuilder()
+        .setCustomId('settings_backup')
+        .setLabel('Backup & Restore')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('💾'),
+      new ButtonBuilder()
+        .setCustomId('settings_advanced')
+        .setLabel('Avançado')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('⚡')
+    );
+
+  const row4 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_main')
+        .setLabel('◀️ Voltar ao Painel')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [row1, row2, row3, row4]
+  });
+}
+
+/**
+ * Painel Central de Personalização
+ */
+async function handleCustomizationPanel(interaction: ButtonInteraction) {
+  await interaction.deferUpdate();
+
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+
+  const embed = new EmbedBuilder()
+    .setColor((config.embed_color || '#EB459E') as HexColorString)
+    .setAuthor({ 
+      name: 'Central de Personalização',
+      iconURL: interaction.guild!.iconURL() || undefined
+    })
+    .setTitle('🎨 Personalização & Aparência')
+    .setDescription(
+      `Customize a aparência e comportamento visual do bot.\n\n` +
+      `**Escolha o que deseja personalizar:**`
+    )
+    .addFields(
+      {
+        name: '\u200b',
+        value: '**🎨 OPÇÕES DE PERSONALIZAÇÃO**',
+        inline: false
+      },
+      {
+        name: '🌈 Tema & Cores',
+        value: 'Paleta de cores, tema claro/escuro',
+        inline: true
+      },
+      {
+        name: '💬 Mensagens',
+        value: 'Boas-vindas, despedidas, respostas',
+        inline: true
+      },
+      {
+        name: '📋 Embeds',
+        value: 'Estilo, footer, thumbnails',
+        inline: true
+      },
+      {
+        name: '😀 Emojis',
+        value: 'Personalize emojis do servidor',
+        inline: true
+      },
+      {
+        name: '🖼️ Imagens',
+        value: 'Banners, logos, backgrounds',
+        inline: true
+      },
+      {
+        name: '🔘 Botões',
+        value: 'Estilos, labels, cores',
+        inline: true
+      }
+    )
+    .setFooter({ text: 'Dê sua identidade visual ao bot!' })
+    .setTimestamp();
+
+  const row1 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('custom_theme')
+        .setLabel('Tema & Cores')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🌈'),
+      new ButtonBuilder()
+        .setCustomId('custom_messages')
+        .setLabel('Mensagens')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('💬'),
+      new ButtonBuilder()
+        .setCustomId('custom_embeds')
+        .setLabel('Embeds')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📋')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('custom_emojis')
+        .setLabel('Emojis')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('😀'),
+      new ButtonBuilder()
+        .setCustomId('custom_images')
+        .setLabel('Imagens')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🖼️'),
+      new ButtonBuilder()
+        .setCustomId('custom_buttons')
+        .setLabel('Botões')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🔘')
+    );
+
+  const row3 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('custom_language')
+        .setLabel('Idioma')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🌍'),
+      new ButtonBuilder()
+        .setCustomId('custom_timezone')
+        .setLabel('Fuso Horário')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🕐'),
+      new ButtonBuilder()
+        .setCustomId('custom_preview')
+        .setLabel('Pré-visualizar')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('👁️')
+    );
+
+  const row4 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_main')
+        .setLabel('◀️ Voltar ao Painel')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [row1, row2, row3, row4]
+  });
+}
+
+/**
+ * Handler para botões de configurações
+ */
+async function handleSettingsButton(interaction: ButtonInteraction, customId: string) {
+  await interaction.deferReply({ flags: 64 });
+
+  const actionMap: { [key: string]: string } = {
+    'settings_announcements': 'Configuração de Anúncios',
+    'settings_permissions': 'Gerenciamento de Permissões',
+    'settings_notifications': 'Sistema de Notificações',
+    'settings_integrations': 'Integrações e APIs',
+    'settings_modules': 'Gerenciamento de Módulos',
+    'settings_backup': 'Backup e Restauração',
+    'settings_advanced': 'Configurações Avançadas'
+  };
+
+  const embed = new EmbedBuilder()
+    .setColor('#FFA500')
+    .setTitle('🚧 Em Desenvolvimento')
+    .setDescription(
+      `**${actionMap[customId] || 'Esta funcionalidade'}** está sendo desenvolvida!\n\n` +
+      `✨ Em breve você poderá configurar isso através de um painel interativo e intuitivo.\n\n` +
+      `**Por enquanto, você pode:**\n` +
+      `• Usar comandos slash específicos\n` +
+      `• Configurar via painel de vendas/tickets\n` +
+      `• Aguardar a próxima atualização! 🚀`
+    )
+    .setFooter({ text: 'Sistema Sellify v2.0 • Roadmap em desenvolvimento' })
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
+/**
+ * Handler para botões de personalização
+ */
+async function handleCustomButton(interaction: ButtonInteraction, customId: string) {
+  await interaction.deferReply({ flags: 64 });
+
+  const actionMap: { [key: string]: string } = {
+    'custom_theme': 'Tema & Cores',
+    'custom_messages': 'Mensagens Personalizadas',
+    'custom_embeds': 'Estilo de Embeds',
+    'custom_emojis': 'Emojis Personalizados',
+    'custom_images': 'Imagens e Banners',
+    'custom_buttons': 'Estilo de Botões',
+    'custom_language': 'Idioma do Bot',
+    'custom_timezone': 'Fuso Horário',
+    'custom_preview': 'Pré-visualização'
+  };
+
+  const embed = new EmbedBuilder()
+    .setColor('#EB459E')
+    .setTitle('🎨 Em Desenvolvimento')
+    .setDescription(
+      `**${actionMap[customId] || 'Esta opção de personalização'}** está sendo desenvolvida!\n\n` +
+      `✨ Em breve você poderá personalizar isso através de uma interface visual moderna.\n\n` +
+      `**Atualmente disponível:**\n` +
+      `• Configuração de cores via \`/configurar\`\n` +
+      `• Personalização básica no painel de vendas\n` +
+      `• Aguarde as próximas atualizações! 🚀`
+    )
+    .setFooter({ text: 'Sistema Sellify v2.0 • Personalização avançada em breve' })
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed] });
 }

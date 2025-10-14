@@ -15,13 +15,12 @@ export const data = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-    await interaction.reply({
-      content: '❌ Você precisa ser administrador para criar cupons.',
-      flags: 64
-    });
-    return;
-  }
-
-  await showAddCouponModal(interaction);
+  // Comando deprecado - redirecionar para o painel
+  const { showDeprecationMessage } = await import('./deprecated');
+  await showDeprecationMessage(
+    interaction,
+    'adicionar-cupom',
+    'Criar Cupom',
+    'Cupons'
+  );
 }

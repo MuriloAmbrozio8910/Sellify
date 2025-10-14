@@ -18,6 +18,16 @@ export const data = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
+  // Comando deprecado - redirecionar para o painel
+  const { showDeprecationMessage } = await import('./deprecated');
+  await showDeprecationMessage(
+    interaction,
+    'estatisticas',
+    'Ver Estatísticas',
+    'Estatísticas'
+  );
+  
+  /* Código original mantido para referência
   try {
     await interaction.deferReply({ flags: 64 });
 
@@ -120,4 +130,5 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       content: `❌ Erro ao buscar estatísticas: ${errorMessage}`
     });
   }
+  */
 }

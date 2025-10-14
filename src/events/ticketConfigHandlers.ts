@@ -144,7 +144,7 @@ async function handleConfigNotifications(interaction: ButtonInteraction) {
 
   const notifyInput = new TextInputBuilder()
     .setCustomId('auto_notify')
-    .setLabel('Notificar moderadores automaticamente? (sim/nao)')
+    .setLabel('Notificar moderadores? (sim/nao)')
     .setStyle(TextInputStyle.Short)
     .setPlaceholder('sim')
     .setRequired(true)
