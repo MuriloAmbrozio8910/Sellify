@@ -98,11 +98,19 @@ export async function sendAnnouncement(
     throw new Error('Canal não encontrado.');
   }
 
-  // Criar embed
+  // Criar embed com limitações do Discord
+  const title = announcement.title.length > 256 
+    ? announcement.title.substring(0, 253) + '...' 
+    : announcement.title;
+  
+  const description = announcement.content.length > 4096 
+    ? announcement.content.substring(0, 4093) + '...' 
+    : announcement.content;
+
   const embed = new EmbedBuilder()
     .setColor(announcement.color || '#5865F2')
-    .setTitle(announcement.title)
-    .setDescription(announcement.content)
+    .setTitle(title)
+    .setDescription(description)
     .setTimestamp();
 
   if (announcement.image_url) {
@@ -242,10 +250,14 @@ export async function sendBroadcastDM(
     }
   }
 
+  // Limitar tamanhos para evitar erro do Discord
+  const safeTitle = title.length > 256 ? title.substring(0, 253) + '...' : title;
+  const safeContent = content.length > 4096 ? content.substring(0, 4093) + '...' : content;
+
   const embed = new EmbedBuilder()
     .setColor('#5865F2')
-    .setTitle(title)
-    .setDescription(content)
+    .setTitle(safeTitle)
+    .setDescription(safeContent)
     .setFooter({ text: `Enviado de ${guild.name}` })
     .setTimestamp();
 
@@ -314,10 +326,19 @@ export async function createEventAnnouncement(
   const channel = guild.channels.cache.get(channelId) as TextChannel;
   if (!channel) throw new Error('Canal não encontrado.');
 
+  // Limitar tamanhos para evitar erro do Discord
+  const safeTitle = data.title.length > 250 
+    ? data.title.substring(0, 247) + '...' 
+    : data.title;
+  
+  const safeDescription = data.description.length > 4096 
+    ? data.description.substring(0, 4093) + '...' 
+    : data.description;
+
   const embed = new EmbedBuilder()
     .setColor('#FF6B6B')
-    .setTitle(`🎊 ${data.title}`)
-    .setDescription(data.description)
+    .setTitle(`🎊 ${safeTitle}`)
+    .setDescription(safeDescription)
     .addFields(
       { name: '📅 Data', value: data.eventDate.toLocaleString('pt-BR'), inline: true },
       { name: '⏰ Faltam', value: getTimeUntil(data.eventDate), inline: true }

@@ -8,6 +8,8 @@ import { supabase } from './supabase';
 import { AIInteractionType } from '../types';
 import { logger } from './logger';
 
+const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
+
 // Inicializar cliente OpenAI
 let openaiClient: OpenAI | null = null;
 
@@ -46,7 +48,7 @@ export async function chatWithAI(
 
   try {
     const completion = await client.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
+      model: DEFAULT_OPENAI_MODEL,
       messages,
       temperature: 0.7,
       max_tokens: 1000
@@ -93,7 +95,7 @@ export async function generateContent(
 
   try {
     const completion = await client.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
+      model: DEFAULT_OPENAI_MODEL,
       messages: [
         {
           role: 'system',
@@ -139,7 +141,7 @@ export async function analyzeSentiment(text: string): Promise<{
 
   try {
     const completion = await client.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: DEFAULT_OPENAI_MODEL,
       messages: [
         {
           role: 'system',
@@ -176,7 +178,7 @@ export async function suggestTicketResponse(
 
   try {
     const completion = await client.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
+      model: DEFAULT_OPENAI_MODEL,
       messages: [
         {
           role: 'system',
@@ -305,8 +307,8 @@ async function logAIInteraction(
   tokensUsed: number
 ): Promise<void> {
   try {
-    // Estimativa de custo (valores aproximados da OpenAI - GPT-4)
-    const costPer1kTokens = 0.03; // USD
+    // Estimativa aproximada usando DEFAULT_OPENAI_MODEL
+    const costPer1kTokens = 0.002; // USD
     const costEstimate = (tokensUsed / 1000) * costPer1kTokens;
 
     await supabase.from('ai_interactions').insert({

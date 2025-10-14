@@ -71,7 +71,7 @@ function buildAnnouncementModal(channelId: string): ModalBuilder {
 
   const roleInput = new TextInputBuilder()
     .setCustomId('announcement_role')
-    .setLabel('ID ou menção da role para mencionar (opcional)')
+    .setLabel('Role para mencionar (opcional)')
     .setRequired(false)
     .setStyle(TextInputStyle.Short)
     .setPlaceholder('Ex: @everyone ou ID da role')
