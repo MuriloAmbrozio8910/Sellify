@@ -74,6 +74,10 @@ export interface GuildConfig {
   catalog_message_id?: string; // ID da mensagem do catálogo
   admin_role_id?: string; // Role de admin
   embed_color: string; // Cor dos embeds
+  // Campos de tema (opcionais), usados para personalização de cores globais
+  theme_primary_color?: string;
+  theme_success_color?: string;
+  theme_danger_color?: string;
   welcome_message?: string;
   purchase_message?: string;
   currency: string; // BRL, USD, etc

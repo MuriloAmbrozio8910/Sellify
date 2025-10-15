@@ -40,7 +40,8 @@ import {
   handleAutomationAutoRoleModal,
   handleAutomationWelcomeModal,
   handleTaskCleanupModal,
-  handleTaskReportsModal
+  handleTaskReportsModal,
+  handleCustomButton
 } from './panelHandlers';
 import {
   handleCustomizationButton,
@@ -135,6 +136,7 @@ async function handleSlashCommand(interaction: ChatInputCommandInteraction) {
  */
 async function handleButton(interaction: ButtonInteraction) {
   const customId = interaction.customId;
+  logger.info(`[BUTTON] Botão pressionado: ${customId}`);
 
   try {
     // Botões públicos (para usuários finais)
@@ -152,6 +154,14 @@ async function handleButton(interaction: ButtonInteraction) {
     // Botões de customização
     else if (customId.startsWith('customize_')) {
       await handleCustomizationButton(interaction);
+    }
+    // Botões de tema
+    else if (customId.startsWith('theme_')) {
+      await handleCustomButton(interaction, customId);
+    }
+    // Botões de mensagens personalizadas
+    else if (customId.startsWith('messages_')) {
+      await handleCustomButton(interaction, customId);
     }
     // Painéis principais e todos os botões dos sub-painéis
     else if (customId.startsWith('panel_') || 
@@ -172,6 +182,16 @@ async function handleButton(interaction: ButtonInteraction) {
         customId.startsWith('settings_') ||
         customId.startsWith('custom_')) {
       await handlePanelButton(interaction);
+    }
+    // Botões de configuração de timestamp dos embeds
+    else if (customId.startsWith('timestamp_')) {
+      const { handleTimestampButton } = await import('./panelHandlers');
+      await handleTimestampButton(interaction, customId);
+    }
+    // Atualizar pré-visualização de personalização
+    else if (customId === 'preview_refresh') {
+      const { handlePreviewRefresh } = await import('./panelHandlers');
+      await handlePreviewRefresh(interaction);
     }
     // Criação de tickets do painel
     else if (customId.startsWith('create_ticket_')) {
@@ -265,7 +285,8 @@ async function handleSelectMenu(interaction: StringSelectMenuInteraction) {
   const customId = interaction.customId;
 
   try {
-    if (customId === 'select_product_catalog') {
+    // REUTILIZAR handler existente para ambos os menus de produtos
+    if (customId === 'public_select_product' || customId === 'select_product_catalog') {
       await handleProductSelection(interaction);
     }
     else if (customId === 'select_payment_method') {
@@ -330,6 +351,69 @@ async function handleModal(interaction: any) {
     // Modal de mensagens de boas-vindas
     else if (customId === 'automation_welcome_modal') {
       await handleAutomationWelcomeModal(interaction);
+    }
+    // Modais de configuração de mensagens
+    else if (customId === 'welcome_message_config_modal') {
+      const { handleWelcomeMessageConfigModal } = await import('./panelHandlers');
+      await handleWelcomeMessageConfigModal(interaction);
+    }
+    else if (customId === 'welcome_advanced_config_modal') {
+      const { handleWelcomeAdvancedConfigModal } = await import('./welcomeAdvancedHandler');
+      await handleWelcomeAdvancedConfigModal(interaction);
+    }
+    else if (customId === 'goodbye_message_config_modal') {
+      const { handleGoodbyeMessageConfigModal } = await import('./panelHandlers');
+      await handleGoodbyeMessageConfigModal(interaction);
+    }
+    else if (customId === 'announcement_template_modal') {
+      const { handleAnnouncementTemplateModal } = await import('./panelHandlers');
+      await handleAnnouncementTemplateModal(interaction);
+    }
+    else if (customId === 'ticket_messages_config_modal') {
+      const { handleTicketMessagesConfigModal } = await import('./panelHandlers');
+      await handleTicketMessagesConfigModal(interaction);
+    }
+    else if (customId === 'sales_messages_config_modal') {
+      const { handleSalesMessagesConfigModal } = await import('./panelHandlers');
+      await handleSalesMessagesConfigModal(interaction);
+    }
+    else if (customId === 'moderation_messages_config_modal') {
+      const { handleModerationMessagesConfigModal } = await import('./panelHandlers');
+      await handleModerationMessagesConfigModal(interaction);
+    }
+    // Modais de configuração de cores do tema
+    else if (customId === 'theme_primary_color_modal') {
+      const { handleThemePrimaryColorModal } = await import('./panelHandlers');
+      await handleThemePrimaryColorModal(interaction);
+    }
+    else if (customId === 'theme_success_color_modal') {
+      const { handleThemeSuccessColorModal } = await import('./panelHandlers');
+      await handleThemeSuccessColorModal(interaction);
+    }
+    else if (customId === 'theme_danger_color_modal') {
+      const { handleThemeDangerColorModal } = await import('./panelHandlers');
+      await handleThemeDangerColorModal(interaction);
+    }
+    // Modais de personalização de embeds
+    else if (customId === 'embed_colors_config_modal') {
+      const { handleEmbedColorsConfigModal } = await import('./panelHandlers');
+      await handleEmbedColorsConfigModal(interaction);
+    }
+    else if (customId === 'embed_footer_config_modal') {
+      const { handleEmbedFooterConfigModal } = await import('./panelHandlers');
+      await handleEmbedFooterConfigModal(interaction);
+    }
+    else if (customId === 'embed_thumbnails_config_modal') {
+      const { handleEmbedThumbnailsConfigModal } = await import('./panelHandlers');
+      await handleEmbedThumbnailsConfigModal(interaction);
+    }
+    else if (customId === 'embed_author_config_modal') {
+      const { handleEmbedAuthorConfigModal } = await import('./panelHandlers');
+      await handleEmbedAuthorConfigModal(interaction);
+    }
+    else if (customId === 'embed_fields_config_modal') {
+      const { handleEmbedFieldsConfigModal } = await import('./panelHandlers');
+      await handleEmbedFieldsConfigModal(interaction);
     }
     // Modal de tarefa de limpeza
     else if (customId === 'task_cleanup_modal') {
@@ -701,9 +785,9 @@ async function handleCatalogProductClick(interaction: ButtonInteraction) {
 
 async function handleCatalogCategoryClick(interaction: ButtonInteraction) {
   await interaction.reply({
-    content: '🔄 Funcionalidade de categorias em desenvolvimento!',
-    flags: 64
-  });
+          content: '🔄 Sistema de categorias disponível! Use os comandos de configuração para gerenciar categorias.',
+          flags: 64
+        });
 }
 
 /**

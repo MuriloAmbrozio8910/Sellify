@@ -60,9 +60,27 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const { formatCurrency } = await import('../utils/payments');
 
     // Calcular estatísticas
-    const onlineMembers = interaction.guild!.members.cache.filter(m => m.presence?.status !== 'offline').size;
-    const botMembers = interaction.guild!.members.cache.filter(m => m.user.bot).size;
-    const humanMembers = interaction.guild!.memberCount - botMembers;
+    let onlineMembers = 0;
+    let botMembers = 0;
+    let humanMembers = 0;
+    
+    // Verificação robusta para evitar erros de acesso a propriedades undefined
+    const guild = interaction.guild;
+    const memberCount = guild?.memberCount || 0;
+    
+    if (guild?.members?.cache) {
+      try {
+        onlineMembers = guild.members.cache.filter(m => m.presence?.status !== 'offline').size;
+        botMembers = guild.members.cache.filter(m => m.user.bot).size;
+        humanMembers = memberCount - botMembers;
+      } catch (err) {
+        console.error('Erro ao acessar cache de membros:', err);
+        humanMembers = memberCount;
+      }
+    } else {
+      // Valores padrão caso não seja possível acessar os membros
+      humanMembers = memberCount;
+    }
 
     // Embed principal moderno e elegante
     const embed = new EmbedBuilder()
@@ -195,12 +213,22 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           .setEmoji('🎨')
       );
 
-    // Linha 4: Ações Rápidas
+    // Linha 4: Ações e Utilidades
     const row4 = new ActionRowBuilder<ButtonBuilder>()
       .addComponents(
         new ButtonBuilder()
+          .setCustomId('panel_setup_public')
+          .setLabel('Setup Público')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('🎯'),
+        new ButtonBuilder()
+          .setCustomId('panel_help')
+          .setLabel('Ajuda')
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji('❓'),
+        new ButtonBuilder()
           .setCustomId('panel_refresh')
-          .setLabel('Atualizar Painel')
+          .setLabel('Atualizar')
           .setStyle(ButtonStyle.Success)
           .setEmoji(EMOJIS.REFRESH)
       );

@@ -4,6 +4,7 @@
  */
 
 import { HexColorString } from 'discord.js';
+import { GuildConfig } from '../types';
 
 /**
  * Paleta de cores moderna e consistente
@@ -331,4 +332,15 @@ export const validators = {
       return false;
     }
   }
+};
+
+/**
+ * Resolve cores de tema a partir da configuração do servidor,
+ * aplicando fallbacks para garantir valores válidos.
+ */
+export const getThemeColors = (config: Partial<GuildConfig>) => {
+  const primary = (config.theme_primary_color || config.embed_color || COLORS.ACCENT) as HexColorString;
+  const success = (config.theme_success_color || COLORS.SUCCESS) as HexColorString;
+  const danger = (config.theme_danger_color || COLORS.DANGER) as HexColorString;
+  return { primary, success, danger };
 };

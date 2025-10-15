@@ -240,11 +240,16 @@ export async function sendBroadcastDM(
   content: string,
   targetRoleId?: string
 ): Promise<{ sent: number; failed: number }> {
+  // Verificar se guild.members está definido
+  if (!guild || !guild.members || !guild.members.cache) {
+    return { sent: 0, failed: 0 };
+  }
+  
   let members = guild.members.cache;
 
   // Filtrar por role se especificada
   if (targetRoleId) {
-    const role = guild.roles.cache.get(targetRoleId);
+    const role = guild.roles?.cache?.get(targetRoleId);
     if (role) {
       members = role.members;
     }

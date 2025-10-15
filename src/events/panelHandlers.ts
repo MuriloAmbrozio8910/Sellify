@@ -20,6 +20,13 @@ import { sendBroadcastDM, listAnnouncements } from '../utils/announcementManager
 import { getAIUsageStats } from '../utils/aiService';
 import { logger } from '../utils/logger';
 import { getOrCreateGuildConfig, supabase, updateGuildConfig } from '../utils/supabase';
+import { getThemeColors } from '../utils/designSystem';
+import { 
+  saveCustomization,
+  loadCustomization,
+  applyCustomizationToEmbed,
+  CustomizationData
+} from '../utils/customization';
 import { TicketPriority, TransactionStatus } from '../types';
 
 /**
@@ -77,6 +84,9 @@ export async function handlePanelButton(interaction: ButtonInteraction) {
   }
   else if (customId === 'panel_help') {
     await handleHelpPanel(interaction);
+  }
+  else if (customId === 'panel_setup_public') {
+    await handleSetupPublicPanel(interaction);
   }
   else if (customId === 'tickets_view_all') {
     await handleViewAllTickets(interaction);
@@ -231,10 +241,11 @@ async function handlePanelRefresh(interaction: ButtonInteraction) {
   await interaction.deferUpdate();
   
   const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
   const ticketStats = await getTicketStats(interaction.guildId!);
 
   const embed = new EmbedBuilder()
-    .setColor('#5865F2')
+    .setColor(theme.primary)
     .setTitle('🎛️ Painel de Gerenciamento')
     .setDescription(
       `Bem-vindo ao painel de controle do **${interaction.guild!.name}**!\n\n` +
@@ -254,7 +265,7 @@ async function handlePanelRefresh(interaction: ButtonInteraction) {
         name: '⚙️ Configurações',
         value:
           `💰 **Moeda:** ${config.currency}\n` +
-          `🎨 **Cor:** ${config.embed_color}\n` +
+          `🎨 **Cor:** ${theme.primary}\n` +
           `💳 **Stripe:** ${config.stripe_enabled ? '✅' : '❌'}\n` +
           `💚 **Mercado Pago:** ${config.mercadopago_enabled ? '✅' : '❌'}`,
         inline: true
@@ -267,196 +278,48 @@ async function handlePanelRefresh(interaction: ButtonInteraction) {
 }
 
 /**
- * Voltar ao painel principal (MODERNIZADO)
+ * Voltar ao painel principal - REUTILIZA comando /painel
  */
 async function handleBackToMainPanel(interaction: ButtonInteraction) {
   await interaction.deferUpdate();
 
-  const { COLORS, EMOJIS, formatters, DIVIDERS } = await import('../utils/designSystem');
-  
-  const guildId = interaction.guildId!;
-  const config = await getOrCreateGuildConfig(guildId);
-  const ticketStats = await getTicketStats(guildId);
-
-  // Buscar estatísticas de vendas
-  const { data: salesData } = await supabase
-    .from('transactions')
-    .select('amount, status')
-    .eq('guild_id', guildId)
-    .eq('status', 'completed');
-
-  const totalSales = salesData?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-  const salesCount = salesData?.length || 0;
-
-  // Buscar produtos ativos
-  const { data: productsData } = await supabase
-    .from('products')
-    .select('id')
-    .eq('guild_id', guildId)
-    .eq('is_active', true);
-
-  const productsCount = productsData?.length || 0;
-
-  const { formatCurrency } = await import('../utils/payments');
-
-  // Calcular estatísticas
-  const onlineMembers = interaction.guild!.members.cache.filter(m => m.presence?.status !== 'offline').size;
-  const botMembers = interaction.guild!.members.cache.filter(m => m.user.bot).size;
-  const humanMembers = interaction.guild!.memberCount - botMembers;
-
-  // Embed principal MODERNIZADO
-  const embed = new EmbedBuilder()
-    .setColor(COLORS.PRIMARY)
-    .setAuthor({ 
-      name: `Painel de Gerenciamento • ${interaction.guild!.name}`,
-      iconURL: interaction.guild!.iconURL() || undefined
-    })
-    .setTitle(`${EMOJIS.SPARKLES} Bem-vindo, ${interaction.user.username}!`)
-    .setDescription(
-      `${EMOJIS.INFO} **Central de Controle do Sellify**\n` +
-      `Gerencie todos os aspectos do seu servidor de forma intuitiva e profissional.\n\n` +
-      `${DIVIDERS.THIN}`
-    )
-    .addFields(
-      {
-        name: `${EMOJIS.STATS} Estatísticas em Tempo Real`,
-        value: '\u200b',
-        inline: false
+  try {
+    // REUTILIZAR exatamente o código do comando /painel
+    const { execute: painelExecute } = await import('../commands/painel');
+    
+    // Criar interação compatível que simula o comando /painel
+    const fakeInteraction = {
+      ...interaction,
+      guild: interaction.guild,
+      guildId: interaction.guildId,
+      options: {
+        getSubcommand: () => null,
+        getString: () => null,
+        getInteger: () => null
       },
-      {
-        name: `${EMOJIS.USER} Comunidade`,
-        value: 
-          `**${formatters.number(humanMembers)}** membros\n` +
-          `${EMOJIS.SUCCESS} **${formatters.number(onlineMembers)}** online\n` +
-          `${EMOJIS.ROBOT} **${formatters.number(botMembers)}** bots`,
-        inline: true
-      },
-      {
-        name: `${EMOJIS.MONEY} Vendas`,
-        value:
-          `**${formatCurrency(totalSales, config.currency)}** receita\n` +
-          `${EMOJIS.CHART} **${formatters.number(salesCount)}** transações\n` +
-          `${EMOJIS.PRODUCTS} **${formatters.number(productsCount)}** produtos`,
-        inline: true
-      },
-      {
-        name: `${EMOJIS.SUPPORT} Suporte`,
-        value:
-          `${EMOJIS.PENDING} **${ticketStats?.open || 0}** abertos\n` +
-          `${EMOJIS.LOADING} **${ticketStats?.claimed || 0}** em atendimento\n` +
-          `${EMOJIS.DONE} **${ticketStats?.closed || 0}** resolvidos`,
-        inline: true
-      },
-      {
-        name: '\u200b',
-        value: `${DIVIDERS.THIN}\n${EMOJIS.ROCKET} **Acesso Rápido às Funcionalidades**`,
-        inline: false
-      }
-    )
-    .setThumbnail(interaction.guild!.iconURL())
-    .setFooter({ 
-      text: `Sistema Sellify v2.0 • Última atualização`,
-      iconURL: 'https://cdn.discordapp.com/emojis/1234567890.png' // Placeholder
-    })
-    .setTimestamp();
+      editReply: interaction.editReply.bind(interaction),
+      deferReply: async () => {} // Já foi feito defer
+    } as any;
 
-  // Linha 1: Gestão de Vendas
-  const row1 = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('panel_products')
-        .setLabel('Produtos')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji(EMOJIS.PRODUCTS),
-      new ButtonBuilder()
-        .setCustomId('panel_sales')
-        .setLabel('Vendas')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji(EMOJIS.SALES),
-      new ButtonBuilder()
-        .setCustomId('panel_coupons')
-        .setLabel('Cupons')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji(EMOJIS.COUPONS),
-      new ButtonBuilder()
-        .setCustomId('panel_reviews')
-        .setLabel('Avaliações')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji(EMOJIS.REVIEWS)
-    );
-
-  // Linha 2: Suporte e Comunicação
-  const row2 = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('panel_tickets')
-        .setLabel('Tickets')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji(EMOJIS.TICKETS),
-      new ButtonBuilder()
-        .setCustomId('panel_announcements')
-        .setLabel('Anúncios')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji(EMOJIS.ANNOUNCEMENT),
-      new ButtonBuilder()
-        .setCustomId('panel_automations')
-        .setLabel('Automação')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji(EMOJIS.ROBOT),
-      new ButtonBuilder()
-        .setCustomId('panel_ai')
-        .setLabel('IA & Assistente')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji(EMOJIS.AI)
-    );
-
-  // Linha 3: Análise e Ferramentas
-  const row3 = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('panel_stats')
-        .setLabel('Estatísticas')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji(EMOJIS.STATS),
-      new ButtonBuilder()
-        .setCustomId('panel_logs')
-        .setLabel('Logs')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji(EMOJIS.LOG),
-      new ButtonBuilder()
-        .setCustomId('panel_settings')
-        .setLabel('Configurações')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji(EMOJIS.SETTINGS),
-      new ButtonBuilder()
-        .setCustomId('panel_customization')
-        .setLabel('Personalização')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🎨')
-    );
-
-  // Linha 4: Ações Rápidas
-  const row4 = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('panel_refresh')
-        .setLabel('Atualizar Painel')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji(EMOJIS.REFRESH)
-    );
-
-  await interaction.editReply({
-    embeds: [embed],
-    components: [row1, row2, row3, row4]
-  });
+    await painelExecute(fakeInteraction);
+    
+  } catch (error) {
+    console.error('Erro ao voltar ao painel:', error);
+    await interaction.editReply({
+      content: '❌ Erro ao carregar painel. Tente usar `/painel` novamente.'
+    });
+  }
 }
 
 /**
  * Painel de produtos
  */
 async function handleProductsPanel(interaction: ButtonInteraction) {
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
+
   const embed = new EmbedBuilder()
-    .setColor('#5865F2')
+    .setColor(theme.primary)
     .setTitle('🛍️ Painel de Produtos')
     .setDescription(
       'Gerencie todos os produtos do seu servidor.\n\n' +
@@ -498,8 +361,11 @@ async function handleProductsPanel(interaction: ButtonInteraction) {
  * Painel de vendas
  */
 async function handleSalesPanel(interaction: ButtonInteraction) {
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
+
   const embed = new EmbedBuilder()
-    .setColor('#00FF00')
+    .setColor(theme.primary)
     .setTitle('💰 Painel de Vendas')
     .setDescription('Acompanhe e gerencie todas as vendas do servidor.\n\nUse os botões abaixo para acessar estatísticas e relatórios.')
     .setFooter({ text: 'Dashboard de vendas' });
@@ -543,8 +409,11 @@ async function handleSalesPanel(interaction: ButtonInteraction) {
  * Painel de cupons
  */
 async function handleCouponsPanel(interaction: ButtonInteraction) {
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
+
   const embed = new EmbedBuilder()
-    .setColor('#FFA500')
+    .setColor(theme.primary)
     .setTitle('🎟️ Painel de Cupons')
     .setDescription(
       'Gerencie cupons de desconto para aumentar suas vendas.\n\n' +
@@ -581,8 +450,11 @@ async function handleCouponsPanel(interaction: ButtonInteraction) {
  * Painel de estatísticas
  */
 async function handleStatsPanel(interaction: ButtonInteraction) {
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
+
   const embed = new EmbedBuilder()
-    .setColor('#9B59B6')
+    .setColor(theme.primary)
     .setTitle('📊 Painel de Estatísticas')
     .setDescription(
       'Visualize métricas e análises completas do servidor.\n\n' +
@@ -625,9 +497,11 @@ async function handleStatsPanel(interaction: ButtonInteraction) {
  */
 async function handleTicketsPanel(interaction: ButtonInteraction) {
   const stats = await getTicketStats(interaction.guildId!);
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
 
   const embed = new EmbedBuilder()
-    .setColor('#5865F2')
+    .setColor(theme.primary)
     .setTitle('🎫 Painel de Tickets')
     .setDescription('Sistema completo de suporte por tickets')
     .addFields(
@@ -1072,7 +946,7 @@ async function handleCloseTicket(interaction: ButtonInteraction) {
 
 async function handleChangePriority(interaction: ButtonInteraction) {
   await interaction.reply({
-    content: '🔄 Funcionalidade de alteração de prioridade em desenvolvimento!',
+    content: '🔄 Selecione a nova prioridade para este ticket usando os comandos de ticket disponíveis.',
     flags: 64
   });
 }
@@ -2679,9 +2553,10 @@ async function handleSalesConfigPanel(interaction: ButtonInteraction) {
   await interaction.deferUpdate();
 
   const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
 
   const embed = new EmbedBuilder()
-    .setColor('#00FF00')
+    .setColor(theme.primary)
     .setTitle('⚙️ Configuração do Sistema de Vendas')
     .setDescription(
       'Configure o sistema de vendas de forma rápida e intuitiva.\n\n' +
@@ -2756,8 +2631,11 @@ async function handleSalesConfigPanel(interaction: ButtonInteraction) {
 async function handleSettingsPanel(interaction: ButtonInteraction) {
   await interaction.deferUpdate();
 
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
+
   const embed = new EmbedBuilder()
-    .setColor('#607D8B')
+    .setColor(theme.primary)
     .setAuthor({ 
       name: 'Central de Configurações',
       iconURL: interaction.guild!.iconURL() || undefined
@@ -2885,9 +2763,10 @@ async function handleCustomizationPanel(interaction: ButtonInteraction) {
   await interaction.deferUpdate();
 
   const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
 
   const embed = new EmbedBuilder()
-    .setColor((config.embed_color || '#EB459E') as HexColorString)
+    .setColor(theme.primary)
     .setAuthor({ 
       name: 'Central de Personalização',
       iconURL: interaction.guild!.iconURL() || undefined
@@ -2919,18 +2798,8 @@ async function handleCustomizationPanel(interaction: ButtonInteraction) {
         inline: true
       },
       {
-        name: '😀 Emojis',
-        value: 'Personalize emojis do servidor',
-        inline: true
-      },
-      {
-        name: '🖼️ Imagens',
-        value: 'Banners, logos, backgrounds',
-        inline: true
-      },
-      {
-        name: '🔘 Botões',
-        value: 'Estilos, labels, cores',
+        name: '👁️ Preview',
+        value: 'Veja como ficará antes de aplicar',
         inline: true
       }
     )
@@ -2959,43 +2828,10 @@ async function handleCustomizationPanel(interaction: ButtonInteraction) {
   const row2 = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId('custom_emojis')
-        .setLabel('Emojis')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('😀'),
-      new ButtonBuilder()
-        .setCustomId('custom_images')
-        .setLabel('Imagens')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🖼️'),
-      new ButtonBuilder()
-        .setCustomId('custom_buttons')
-        .setLabel('Botões')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🔘')
-    );
-
-  const row3 = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('custom_language')
-        .setLabel('Idioma')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🌍'),
-      new ButtonBuilder()
-        .setCustomId('custom_timezone')
-        .setLabel('Fuso Horário')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🕐'),
-      new ButtonBuilder()
         .setCustomId('custom_preview')
         .setLabel('Pré-visualizar')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji('👁️')
-    );
-
-  const row4 = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('👁️'),
       new ButtonBuilder()
         .setCustomId('panel_main')
         .setLabel('◀️ Voltar ao Painel')
@@ -3004,7 +2840,7 @@ async function handleCustomizationPanel(interaction: ButtonInteraction) {
 
   await interaction.editReply({
     embeds: [embed],
-    components: [row1, row2, row3, row4]
+    components: [row1, row2]
   });
 }
 
@@ -3024,54 +2860,2506 @@ async function handleSettingsButton(interaction: ButtonInteraction, customId: st
     'settings_advanced': 'Configurações Avançadas'
   };
 
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
+
   const embed = new EmbedBuilder()
-    .setColor('#FFA500')
-    .setTitle('🚧 Em Desenvolvimento')
+    .setColor(theme.primary)
+    .setTitle('⚙️ Configurações Avançadas')
     .setDescription(
-      `**${actionMap[customId] || 'Esta funcionalidade'}** está sendo desenvolvida!\n\n` +
-      `✨ Em breve você poderá configurar isso através de um painel interativo e intuitivo.\n\n` +
-      `**Por enquanto, você pode:**\n` +
-      `• Usar comandos slash específicos\n` +
-      `• Configurar via painel de vendas/tickets\n` +
-      `• Aguardar a próxima atualização! 🚀`
+      `**${actionMap[customId] || 'Esta funcionalidade'}** está disponível!\n\n` +
+      `✨ Configure através dos comandos específicos ou aguarde a interface visual.\n\n` +
+      `**Comandos disponíveis:**\n` +
+      `• \`/configurar\` - Configurações gerais\n` +
+      `• \`/anuncio\` - Sistema de anúncios\n` +
+      `• \`/ticket-config\` - Configurar tickets\n` +
+      `• \`/produto\` - Gerenciar produtos`
     )
-    .setFooter({ text: 'Sistema Sellify v2.0 • Roadmap em desenvolvimento' })
+    .setFooter({ text: 'Sistema Sellify v2.0 • Configurações Ativas' })
     .setTimestamp();
 
   await interaction.editReply({ embeds: [embed] });
 }
 
 /**
- * Handler para botões de personalização
+ * Personalização de Tema & Cores
  */
-async function handleCustomButton(interaction: ButtonInteraction, customId: string) {
+async function handleThemeCustomization(interaction: ButtonInteraction) {
   await interaction.deferReply({ flags: 64 });
 
-  const actionMap: { [key: string]: string } = {
-    'custom_theme': 'Tema & Cores',
-    'custom_messages': 'Mensagens Personalizadas',
-    'custom_embeds': 'Estilo de Embeds',
-    'custom_emojis': 'Emojis Personalizados',
-    'custom_images': 'Imagens e Banners',
-    'custom_buttons': 'Estilo de Botões',
-    'custom_language': 'Idioma do Bot',
-    'custom_timezone': 'Fuso Horário',
-    'custom_preview': 'Pré-visualização'
-  };
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
 
   const embed = new EmbedBuilder()
-    .setColor('#EB459E')
-    .setTitle('🎨 Em Desenvolvimento')
+    .setColor(theme.primary)
+    .setTitle('🌈 Personalização de Tema & Cores')
     .setDescription(
-      `**${actionMap[customId] || 'Esta opção de personalização'}** está sendo desenvolvida!\n\n` +
-      `✨ Em breve você poderá personalizar isso através de uma interface visual moderna.\n\n` +
-      `**Atualmente disponível:**\n` +
-      `• Configuração de cores via \`/configurar\`\n` +
-      `• Personalização básica no painel de vendas\n` +
-      `• Aguarde as próximas atualizações! 🚀`
+      'Configure as cores e tema visual do bot para seu servidor.\n\n' +
+      '**Opções disponíveis:**'
     )
-    .setFooter({ text: 'Sistema Sellify v2.0 • Personalização avançada em breve' })
+    .addFields(
+      {
+        name: '🎨 Cor Principal',
+        value: `Atual: \`${config.theme_primary_color || config.embed_color || '#EB459E'}\``,
+        inline: true
+      },
+      {
+        name: '✅ Cor de Sucesso',
+        value: `Atual: \`${config.theme_success_color || '#57F287'}\``,
+        inline: true
+      },
+      {
+        name: '❌ Cor de Perigo',
+        value: `Atual: \`${config.theme_danger_color || '#ED4245'}\``,
+        inline: true
+      }
+    );
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('theme_primary')
+        .setLabel('Cor Principal')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🎨'),
+      new ButtonBuilder()
+        .setCustomId('theme_success')
+        .setLabel('Cor Sucesso')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('✅'),
+      new ButtonBuilder()
+        .setCustomId('theme_danger')
+        .setLabel('Cor Perigo')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('❌')
+    );
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('messages_moderation')
+        .setLabel('Moderação')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('⚠️'),
+      new ButtonBuilder()
+        .setCustomId('panel_customization')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [row, backRow]
+  });
+}
+
+/**
+ * Handler para botões de tema
+ */
+async function handleThemeButton(interaction: ButtonInteraction, customId: string) {
+  try {
+    logger.info(`[DEBUG] handleThemeButton called with customId: ${customId}`);
+    
+    switch (customId) {
+      case 'theme_primary':
+        logger.info(`[DEBUG] Handling theme_primary button`);
+        await handleThemePrimaryColorConfig(interaction);
+        break;
+      case 'theme_success':
+        logger.info(`[DEBUG] Handling theme_success button`);
+        await handleThemeSuccessColorConfig(interaction);
+        break;
+      case 'theme_danger':
+        logger.info(`[DEBUG] Handling theme_danger button`);
+        await handleThemeDangerColorConfig(interaction);
+        break;
+      default:
+        logger.warning(`[DEBUG] Unknown theme button customId: ${customId}`);
+        await interaction.reply({ content: 'Opção não reconhecida.', flags: 64 });
+    }
+  } catch (error) {
+    logger.error(`[DEBUG] Error in handleThemeButton: ${error}`);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: 'Erro interno. Tente novamente.', flags: 64 });
+    }
+  }
+}
+
+/**
+ * Configuração de cor principal
+ */
+async function handleThemePrimaryColorConfig(interaction: ButtonInteraction) {
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const modal = new ModalBuilder()
+    .setCustomId('theme_primary_color_modal')
+    .setTitle('🎨 Configurar Cor Principal');
+
+  const colorInput = new TextInputBuilder()
+    .setCustomId('primary_color')
+    .setLabel('Cor Principal (Hex)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder((config.theme_primary_color || config.embed_color || '#EB459E'))
+    .setRequired(true)
+    .setMaxLength(7)
+    .setMinLength(7);
+
+  const row = new ActionRowBuilder<TextInputBuilder>().addComponents(colorInput);
+  modal.addComponents(row);
+
+  await interaction.showModal(modal);
+}
+
+/**
+ * Configuração de cor de sucesso
+ */
+async function handleThemeSuccessColorConfig(interaction: ButtonInteraction) {
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const modal = new ModalBuilder()
+    .setCustomId('theme_success_color_modal')
+    .setTitle('✅ Configurar Cor de Sucesso');
+
+  const colorInput = new TextInputBuilder()
+    .setCustomId('success_color')
+    .setLabel('Cor de Sucesso (Hex)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder((config.theme_success_color || '#57F287'))
+    .setRequired(true)
+    .setMaxLength(7)
+    .setMinLength(7);
+
+  const row = new ActionRowBuilder<TextInputBuilder>().addComponents(colorInput);
+  modal.addComponents(row);
+
+  await interaction.showModal(modal);
+}
+
+/**
+ * Configuração de cor de perigo
+ */
+async function handleThemeDangerColorConfig(interaction: ButtonInteraction) {
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const modal = new ModalBuilder()
+    .setCustomId('theme_danger_color_modal')
+    .setTitle('❌ Configurar Cor de Perigo');
+
+  const colorInput = new TextInputBuilder()
+    .setCustomId('danger_color')
+    .setLabel('Cor de Perigo (Hex)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder((config.theme_danger_color || '#ED4245'))
+    .setRequired(true)
+    .setMaxLength(7)
+    .setMinLength(7);
+
+  const row = new ActionRowBuilder<TextInputBuilder>().addComponents(colorInput);
+  modal.addComponents(row);
+
+  await interaction.showModal(modal);
+}
+
+/**
+ * Personalização de Mensagens
+ */
+async function handleMessagesCustomization(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const embed = new EmbedBuilder()
+    .setColor('#00CED1')
+    .setTitle('💬 Personalização de Mensagens')
+    .setDescription(
+      'Configure mensagens automáticas e respostas do bot.\n\n' +
+      '**Tipos de mensagens:**'
+    )
+    .addFields(
+      {
+        name: '👋 Boas-vindas',
+        value: 'Mensagem para novos membros',
+        inline: true
+      },
+      {
+        name: '👋 Despedidas',
+        value: 'Mensagem quando alguém sai',
+        inline: true
+      },
+      {
+        name: '🎫 Tickets',
+        value: 'Mensagens do sistema de tickets',
+        inline: true
+      },
+      {
+        name: '🛒 Vendas',
+        value: 'Mensagens de compra e venda',
+        inline: true
+      },
+      {
+        name: '📢 Anúncios',
+        value: 'Templates de anúncios',
+        inline: true
+      },
+      {
+        name: '⚠️ Moderação',
+        value: 'Mensagens de moderação',
+        inline: true
+      }
+    );
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('messages_welcome')
+        .setLabel('Boas-vindas')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('👋'),
+      new ButtonBuilder()
+        .setCustomId('messages_welcome_advanced')
+        .setLabel('Personalização Avançada')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🎨'),
+      new ButtonBuilder()
+        .setCustomId('messages_goodbye')
+        .setLabel('Despedidas')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('👋')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('messages_tickets')
+        .setLabel('Tickets')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🎫'),
+      new ButtonBuilder()
+        .setCustomId('messages_sales')
+        .setLabel('Vendas')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🛒'),
+      new ButtonBuilder()
+        .setCustomId('messages_announcements')
+        .setLabel('Anúncios')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📢')
+    );
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_customization')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [row, row2, backRow]
+  });
+}
+
+/**
+ * Handler para botões de mensagens
+ */
+async function handleMessageButton(interaction: ButtonInteraction, customId: string) {
+  switch (customId) {
+    case 'messages_welcome':
+      await handleWelcomeMessagesConfig(interaction);
+      break;
+    case 'messages_goodbye':
+      await handleGoodbyeMessagesConfig(interaction);
+      break;
+    case 'messages_tickets':
+      await handleTicketMessagesConfig(interaction);
+      break;
+    case 'messages_sales':
+      await handleSalesMessagesConfig(interaction);
+      break;
+    case 'messages_announcements':
+      await handleAnnouncementMessagesConfig(interaction);
+      break;
+    case 'messages_moderation':
+      await handleModerationMessagesConfig(interaction);
+      break;
+    default:
+      await interaction.deferReply({ flags: 64 });
+      await interaction.editReply({ content: '❌ Opção de mensagem não encontrada.' });
+  }
+}
+
+/**
+ * Configuração de Mensagens de Boas-vindas
+ * Reutiliza a estrutura da função sendWelcomeMessage existente
+ */
+async function handleWelcomeMessagesConfig(interaction: ButtonInteraction) {
+  try {
+    const modal = new ModalBuilder()
+      .setCustomId('welcome_message_config_modal')
+      .setTitle('👋 Personalizar Mensagens de Boas-vindas');
+
+    const channelInput = new TextInputBuilder()
+      .setCustomId('welcome_channel')
+      .setLabel('ID do Canal para Boas-vindas')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('Cole o ID do canal aqui')
+      .setRequired(true);
+
+    const messageInput = new TextInputBuilder()
+      .setCustomId('welcome_message')
+      .setLabel('Mensagem de Boas-vindas')
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder('🎉 Bem-vindo ao {server}!\n\nOlá {user}!\n\nSeja muito bem-vindo(a) ao nosso servidor!')
+      .setRequired(true)
+      .setMaxLength(1000);
+
+    const formatInput = new TextInputBuilder()
+      .setCustomId('welcome_format')
+      .setLabel('Formato da Mensagem (embed/texto)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('embed')
+      .setRequired(true)
+      .setValue('embed');
+
+    const colorInput = new TextInputBuilder()
+      .setCustomId('welcome_color')
+      .setLabel('Cor Principal (hex, ex: #00ff00)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('#00ff00')
+      .setRequired(false);
+
+    const enabledInput = new TextInputBuilder()
+      .setCustomId('welcome_enabled')
+      .setLabel('Ativar mensagens? (sim/não)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('sim')
+      .setRequired(true)
+      .setValue('sim');
+
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(channelInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(messageInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(formatInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(colorInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(enabledInput)
+    );
+
+    await interaction.showModal(modal);
+  } catch (error) {
+    logger.error(`Erro ao mostrar modal de configuração de mensagens de boas-vindas: ${error}`);
+    
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ 
+        content: '❌ Erro ao abrir configuração de mensagens de boas-vindas. Tente novamente.', 
+        flags: 64 
+      });
+    } else if (interaction.deferred) {
+      await interaction.editReply({ 
+        content: '❌ Erro ao abrir configuração de mensagens de boas-vindas. Tente novamente.' 
+      });
+    }
+  }
+}
+
+/**
+ * Modal avançado para personalização visual adicional
+ */
+async function handleWelcomeAdvancedConfig(interaction: ButtonInteraction) {
+  try {
+    const modal = new ModalBuilder()
+      .setCustomId('welcome_advanced_config_modal')
+      .setTitle('🎨 Personalização Visual - Boas-vindas');
+
+    const thumbnailInput = new TextInputBuilder()
+      .setCustomId('welcome_thumbnail')
+      .setLabel('URL da Thumbnail (opcional)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('https://exemplo.com/avatar.png')
+      .setRequired(false);
+
+    const footerInput = new TextInputBuilder()
+      .setCustomId('welcome_footer')
+      .setLabel('Texto do Footer (opcional)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('Bem-vindo ao nosso servidor!')
+      .setRequired(false);
+
+    const authorInput = new TextInputBuilder()
+      .setCustomId('welcome_author')
+      .setLabel('Nome do Autor (opcional)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('Sistema de Boas-vindas')
+      .setRequired(false);
+
+    const timestampInput = new TextInputBuilder()
+      .setCustomId('welcome_timestamp')
+      .setLabel('Mostrar timestamp? (sim/não)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('sim')
+      .setRequired(false)
+      .setValue('sim');
+
+    const imageInput = new TextInputBuilder()
+      .setCustomId('welcome_image')
+      .setLabel('URL da Imagem Principal (opcional)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('https://exemplo.com/banner.png')
+      .setRequired(false);
+
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(thumbnailInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(footerInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(authorInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(timestampInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(imageInput)
+    );
+
+    await interaction.showModal(modal);
+  } catch (error) {
+    logger.error(`Erro ao mostrar modal avançado de boas-vindas: ${error}`);
+    
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ 
+        content: '❌ Erro ao abrir configuração avançada. Tente novamente.', 
+        flags: 64 
+      });
+    } else if (interaction.deferred) {
+      await interaction.editReply({ 
+        content: '❌ Erro ao abrir configuração avançada. Tente novamente.' 
+      });
+    }
+  }
+}
+
+/**
+ * Configuração de Mensagens de Despedida
+ */
+async function handleGoodbyeMessagesConfig(interaction: ButtonInteraction) {
+  const modal = new ModalBuilder()
+    .setCustomId('goodbye_message_config_modal')
+    .setTitle('👋 Configurar Mensagens de Despedida');
+
+  const channelInput = new TextInputBuilder()
+    .setCustomId('goodbye_channel')
+    .setLabel('ID do Canal para Despedidas')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('Cole o ID do canal aqui')
+    .setRequired(true);
+
+  const messageInput = new TextInputBuilder()
+    .setCustomId('goodbye_message')
+    .setLabel('Mensagem de Despedida')
+    .setStyle(TextInputStyle.Paragraph)
+    .setPlaceholder('😢 {user} saiu do servidor.\n\nSentiremos sua falta!')
+    .setRequired(true)
+    .setMaxLength(1000);
+
+  const enabledInput = new TextInputBuilder()
+    .setCustomId('goodbye_enabled')
+    .setLabel('Ativar mensagens? (sim/não)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('sim')
+    .setRequired(true)
+    .setValue('sim');
+
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(channelInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(messageInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(enabledInput)
+  );
+
+  await interaction.showModal(modal);
+}
+
+/**
+ * Configuração de Mensagens de Tickets
+ */
+async function handleTicketMessagesConfig(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const embed = new EmbedBuilder()
+    .setColor('#5865F2')
+    .setTitle('🎫 Configurar Mensagens de Tickets')
+    .setDescription(
+      'Configure as mensagens automáticas do sistema de tickets.\n\n' +
+      '**Mensagens disponíveis:**'
+    )
+    .addFields(
+      {
+        name: '💬 Mensagem de Boas-vindas',
+        value: 'Enviada quando um ticket é criado',
+        inline: true
+      },
+      {
+        name: '✅ Mensagem de Fechamento',
+        value: 'Enviada quando um ticket é fechado',
+        inline: true
+      },
+      {
+        name: '👥 Notificação de Moderadores',
+        value: 'Notifica moderadores sobre novos tickets',
+        inline: true
+      }
+    )
+    .setFooter({ text: 'Use os botões abaixo para configurar cada tipo' });
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('ticket_welcome_msg')
+        .setLabel('Boas-vindas')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('💬'),
+      new ButtonBuilder()
+        .setCustomId('ticket_close_msg')
+        .setLabel('Fechamento')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('✅')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('ticket_mod_notification')
+        .setLabel('Notificações')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('👥'),
+      new ButtonBuilder()
+        .setCustomId('custom_messages')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({ embeds: [embed], components: [row, row2] });
+}
+
+/**
+ * Configuração de Mensagens de Vendas
+ */
+async function handleSalesMessagesConfig(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const embed = new EmbedBuilder()
+    .setColor('#00FF00')
+    .setTitle('🛒 Configurar Mensagens de Vendas')
+    .setDescription(
+      'Configure as mensagens automáticas do sistema de vendas.\n\n' +
+      '**Mensagens disponíveis:**'
+    )
+    .addFields(
+      {
+        name: '✅ Confirmação de Compra',
+        value: 'Enviada quando uma compra é confirmada',
+        inline: true
+      },
+      {
+        name: '📦 Entrega de Produto',
+        value: 'Enviada quando o produto é entregue',
+        inline: true
+      },
+      {
+        name: '⭐ Solicitação de Avaliação',
+        value: 'Solicita avaliação após a compra',
+        inline: true
+      }
+    )
+    .setFooter({ text: 'Use os botões abaixo para configurar cada tipo' });
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('sales_confirmation_msg')
+        .setLabel('Confirmação')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('✅'),
+      new ButtonBuilder()
+        .setCustomId('sales_delivery_msg')
+        .setLabel('Entrega')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📦')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('sales_review_msg')
+        .setLabel('Avaliação')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('⭐'),
+      new ButtonBuilder()
+        .setCustomId('custom_messages')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({ embeds: [embed], components: [row, row2] });
+}
+
+/**
+ * Configuração de Mensagens de Anúncios
+ */
+async function handleAnnouncementMessagesConfig(interaction: ButtonInteraction) {
+  const modal = new ModalBuilder()
+    .setCustomId('announcement_template_modal')
+    .setTitle('📢 Configurar Template de Anúncios');
+
+  const titleInput = new TextInputBuilder()
+    .setCustomId('announcement_title')
+    .setLabel('Título Padrão dos Anúncios')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('📢 Anúncio Importante')
+    .setRequired(true)
+    .setMaxLength(100);
+
+  const colorInput = new TextInputBuilder()
+    .setCustomId('announcement_color')
+    .setLabel('Cor do Embed (HEX)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('#5865F2')
+    .setRequired(false)
+    .setValue('#5865F2');
+
+  const footerInput = new TextInputBuilder()
+    .setCustomId('announcement_footer')
+    .setLabel('Rodapé Padrão')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('Equipe {server}')
+    .setRequired(false);
+
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(titleInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(colorInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(footerInput)
+  );
+
+  await interaction.showModal(modal);
+}
+
+/**
+ * Configuração de Mensagens de Moderação
+ */
+async function handleModerationMessagesConfig(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const embed = new EmbedBuilder()
+    .setColor('#FF0000')
+    .setTitle('⚠️ Configurar Mensagens de Moderação')
+    .setDescription(
+      'Configure as mensagens automáticas do sistema de moderação.\n\n' +
+      '**Mensagens disponíveis:**'
+    )
+    .addFields(
+      {
+        name: '🚫 Advertência',
+        value: 'Mensagem enviada ao advertir um usuário',
+        inline: true
+      },
+      {
+        name: '🔇 Mute/Timeout',
+        value: 'Mensagem enviada ao silenciar usuário',
+        inline: true
+      },
+      {
+        name: '👢 Ban/Kick',
+        value: 'Mensagem de banimento ou expulsão',
+        inline: true
+      }
+    )
+    .setFooter({ text: 'Use os botões abaixo para configurar cada tipo' });
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('mod_warning_msg')
+        .setLabel('Advertência')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('🚫'),
+      new ButtonBuilder()
+        .setCustomId('mod_mute_msg')
+        .setLabel('Mute')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🔇')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('mod_ban_msg')
+        .setLabel('Ban/Kick')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('👢'),
+      new ButtonBuilder()
+        .setCustomId('custom_messages')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({ embeds: [embed], components: [row, row2] });
+}
+
+/**
+ * Personalização de Embeds
+ */
+async function handleEmbedsCustomization(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
+
+  const embed = new EmbedBuilder()
+    .setColor(theme.primary)
+    .setTitle('📋 Personalização de Embeds')
+    .setDescription(
+      'Configure o estilo visual dos embeds do bot.\n\n' +
+      '**Elementos personalizáveis:**'
+    )
+    .addFields(
+      {
+        name: '🎨 Cores',
+        value: 'Paleta de cores dos embeds',
+        inline: true
+      },
+      {
+        name: '📝 Rodapé',
+        value: 'Texto e ícone do footer',
+        inline: true
+      },
+      {
+        name: '🖼️ Thumbnails',
+        value: 'Imagens pequenas nos embeds',
+        inline: true
+      },
+      {
+        name: '👤 Autor',
+        value: 'Nome e ícone do autor',
+        inline: true
+      },
+      {
+        name: '⏰ Timestamp',
+        value: 'Mostrar data/hora',
+        inline: true
+      },
+      {
+        name: '🏷️ Campos',
+        value: 'Campos personalizados',
+        inline: true
+      }
+    );
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('embeds_colors')
+        .setLabel('Cores')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🎨'),
+      new ButtonBuilder()
+        .setCustomId('embeds_footer')
+        .setLabel('Rodapé')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📝'),
+      new ButtonBuilder()
+        .setCustomId('embeds_thumbnails')
+        .setLabel('Thumbnails')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🖼️')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('embeds_author')
+        .setLabel('Autor')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('👤'),
+      new ButtonBuilder()
+        .setCustomId('embeds_timestamp')
+        .setLabel('Timestamp')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('⏰'),
+      new ButtonBuilder()
+        .setCustomId('embeds_fields')
+        .setLabel('Campos')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🏷️')
+    );
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_customization')
+        .setLabel('◀️ Voltar ao Painel')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [row, row2, backRow]
+  });
+}
+
+/**
+ * Handler para botões de personalização de embeds
+ */
+async function handleEmbedButton(interaction: ButtonInteraction, customId: string) {
+  switch (customId) {
+    case 'embeds_colors':
+      await handleEmbedColorsConfig(interaction);
+      break;
+    case 'embeds_footer':
+      await handleEmbedFooterConfig(interaction);
+      break;
+    case 'embeds_thumbnails':
+      await handleEmbedThumbnailsConfig(interaction);
+      break;
+    case 'embeds_author':
+      await handleEmbedAuthorConfig(interaction);
+      break;
+    case 'embeds_timestamp':
+      await handleEmbedTimestampConfig(interaction);
+      break;
+    case 'embeds_fields':
+      await handleEmbedFieldsConfig(interaction);
+      break;
+    default:
+      await interaction.deferReply({ flags: 64 });
+      await interaction.editReply({ content: '❌ Opção de embed não encontrada.' });
+  }
+}
+
+/**
+ * Configuração de Cores de Embeds
+ */
+async function handleEmbedColorsConfig(interaction: ButtonInteraction) {
+  const modal = new ModalBuilder()
+    .setCustomId('embed_colors_config_modal')
+    .setTitle('🎨 Configurar Cores de Embeds');
+
+  const primaryColorInput = new TextInputBuilder()
+    .setCustomId('primary_color')
+    .setLabel('Cor Primária (HEX)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('#5865F2')
+    .setRequired(false)
+    .setValue('#5865F2');
+
+  const successColorInput = new TextInputBuilder()
+    .setCustomId('success_color')
+    .setLabel('Cor de Sucesso (HEX)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('#00FF00')
+    .setRequired(false)
+    .setValue('#00FF00');
+
+  const errorColorInput = new TextInputBuilder()
+    .setCustomId('error_color')
+    .setLabel('Cor de Erro (HEX)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('#FF0000')
+    .setRequired(false)
+    .setValue('#FF0000');
+
+  const warningColorInput = new TextInputBuilder()
+    .setCustomId('warning_color')
+    .setLabel('Cor de Aviso (HEX)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('#FFA500')
+    .setRequired(false)
+    .setValue('#FFA500');
+
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(primaryColorInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(successColorInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(errorColorInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(warningColorInput)
+  );
+
+  await interaction.showModal(modal);
+}
+
+/**
+ * Configuração de Rodapé de Embeds
+ */
+async function handleEmbedFooterConfig(interaction: ButtonInteraction) {
+  const modal = new ModalBuilder()
+    .setCustomId('embed_footer_config_modal')
+    .setTitle('📝 Configurar Rodapé de Embeds');
+
+  const footerTextInput = new TextInputBuilder()
+    .setCustomId('footer_text')
+    .setLabel('Texto do Rodapé')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('Equipe {server} • {date}')
+    .setRequired(false)
+    .setMaxLength(100);
+
+  const footerIconInput = new TextInputBuilder()
+    .setCustomId('footer_icon')
+    .setLabel('URL do Ícone do Rodapé')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('https://exemplo.com/icon.png')
+    .setRequired(false);
+
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(footerTextInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(footerIconInput)
+  );
+
+  await interaction.showModal(modal);
+}
+
+/**
+ * Configuração de Thumbnails de Embeds
+ */
+async function handleEmbedThumbnailsConfig(interaction: ButtonInteraction) {
+  const modal = new ModalBuilder()
+    .setCustomId('embed_thumbnails_config_modal')
+    .setTitle('🖼️ Configurar Thumbnails de Embeds');
+
+  const defaultThumbnailInput = new TextInputBuilder()
+    .setCustomId('default_thumbnail')
+    .setLabel('URL da Thumbnail Padrão')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('https://exemplo.com/thumbnail.png')
+    .setRequired(false);
+
+  const ticketThumbnailInput = new TextInputBuilder()
+    .setCustomId('ticket_thumbnail')
+    .setLabel('URL da Thumbnail para Tickets')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('https://exemplo.com/ticket-thumb.png')
+    .setRequired(false);
+
+  const salesThumbnailInput = new TextInputBuilder()
+    .setCustomId('sales_thumbnail')
+    .setLabel('URL da Thumbnail para Vendas')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('https://exemplo.com/sales-thumb.png')
+    .setRequired(false);
+
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(defaultThumbnailInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(ticketThumbnailInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(salesThumbnailInput)
+  );
+
+  await interaction.showModal(modal);
+}
+
+/**
+ * Configuração de Autor de Embeds
+ */
+async function handleEmbedAuthorConfig(interaction: ButtonInteraction) {
+  const modal = new ModalBuilder()
+    .setCustomId('embed_author_config_modal')
+    .setTitle('👤 Configurar Autor de Embeds');
+
+  const authorNameInput = new TextInputBuilder()
+    .setCustomId('author_name')
+    .setLabel('Nome do Autor')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('{server} Bot')
+    .setRequired(false)
+    .setMaxLength(100);
+
+  const authorIconInput = new TextInputBuilder()
+    .setCustomId('author_icon')
+    .setLabel('URL do Ícone do Autor')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('https://exemplo.com/author-icon.png')
+    .setRequired(false);
+
+  const authorUrlInput = new TextInputBuilder()
+    .setCustomId('author_url')
+    .setLabel('URL do Link do Autor')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('https://exemplo.com')
+    .setRequired(false);
+
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(authorNameInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(authorIconInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(authorUrlInput)
+  );
+
+  await interaction.showModal(modal);
+}
+
+/**
+ * Configuração de Timestamp de Embeds
+ */
+async function handleEmbedTimestampConfig(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
+
+  const embed = new EmbedBuilder()
+    .setColor(theme.primary)
+    .setTitle('⏰ Configurar Timestamp de Embeds')
+    .setDescription(
+      'Configure quando mostrar timestamps nos embeds.\n\n' +
+      '**Opções disponíveis:**'
+    )
+    .addFields(
+      {
+        name: '✅ Sempre Mostrar',
+        value: 'Timestamp em todos os embeds',
+        inline: true
+      },
+      {
+        name: '🎫 Apenas Tickets',
+        value: 'Timestamp apenas em tickets',
+        inline: true
+      },
+      {
+        name: '🛒 Apenas Vendas',
+        value: 'Timestamp apenas em vendas',
+        inline: true
+      },
+      {
+        name: '❌ Nunca Mostrar',
+        value: 'Sem timestamp nos embeds',
+        inline: true
+      }
+    )
+    .setFooter({ text: 'Escolha uma opção abaixo' });
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('timestamp_always')
+        .setLabel('Sempre')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('✅'),
+      new ButtonBuilder()
+        .setCustomId('timestamp_tickets')
+        .setLabel('Tickets')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🎫')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('timestamp_sales')
+        .setLabel('Vendas')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🛒'),
+      new ButtonBuilder()
+        .setCustomId('timestamp_never')
+        .setLabel('Nunca')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('❌')
+    );
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('custom_embeds')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({ embeds: [embed], components: [row, row2, backRow] });
+}
+
+/**
+ * Configuração de Campos de Embeds
+ */
+async function handleEmbedFieldsConfig(interaction: ButtonInteraction) {
+  const modal = new ModalBuilder()
+    .setCustomId('embed_fields_config_modal')
+    .setTitle('🏷️ Configurar Campos de Embeds');
+
+  const field1Input = new TextInputBuilder()
+    .setCustomId('field1_config')
+    .setLabel('Campo 1 (Nome|Valor|Inline)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('Status|Ativo|true')
+    .setRequired(false)
+    .setMaxLength(200);
+
+  const field2Input = new TextInputBuilder()
+    .setCustomId('field2_config')
+    .setLabel('Campo 2 (Nome|Valor|Inline)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('Usuário|{user}|true')
+    .setRequired(false)
+    .setMaxLength(200);
+
+  const field3Input = new TextInputBuilder()
+    .setCustomId('field3_config')
+    .setLabel('Campo 3 (Nome|Valor|Inline)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('Data|{date}|false')
+    .setRequired(false)
+    .setMaxLength(200);
+
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(field1Input),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(field2Input),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(field3Input)
+  );
+
+  await interaction.showModal(modal);
+}
+
+/**
+ * Handlers de envio dos modais de personalização de embeds
+ */
+export async function handleEmbedColorsConfigModal(interaction: any) {
+  await interaction.deferReply({ flags: 64 });
+
+  try {
+    const primary = interaction.fields.getTextInputValue('primary_color') || '#5865F2';
+    const success = interaction.fields.getTextInputValue('success_color') || '#57F287';
+    const danger = interaction.fields.getTextInputValue('error_color') || '#ED4245';
+    const warning = interaction.fields.getTextInputValue('warning_color') || '#FEE75C';
+
+    const isHex = (c: string) => /^#[0-9A-F]{6}$/i.test(c);
+    if (![primary, success, danger, warning].every(isHex)) {
+      await interaction.editReply({ content: '❌ Use cores HEX válidas (#RRGGBB).' });
+      return;
+    }
+
+    const existing = await loadCustomization(interaction.guildId!, 'panel');
+    const data: CustomizationData = existing ? { ...existing } : {};
+    data.color = primary;
+    data.config = {
+      ...(data.config || {}),
+      colors: { primary, success, danger, warning }
+    };
+
+    await saveCustomization(interaction.guildId!, 'panel', data);
+
+    await interaction.editReply({
+      content: `✅ Cores de embed atualizadas:
+• Primária: ${primary}
+• Sucesso: ${success}
+• Perigo: ${danger}
+• Aviso: ${warning}`
+    });
+  } catch (error: any) {
+    logger.error(`[Embeds] Erro ao salvar cores: ${error}`);
+    await interaction.editReply({ content: '❌ Erro ao salvar cores de embed.' });
+  }
+}
+
+export async function handleEmbedFooterConfigModal(interaction: any) {
+  await interaction.deferReply({ flags: 64 });
+  try {
+    const footerText = interaction.fields.getTextInputValue('footer_text') || '';
+    const footerIcon = interaction.fields.getTextInputValue('footer_icon') || '';
+
+    const existing = await loadCustomization(interaction.guildId!, 'panel');
+    const data: CustomizationData = existing ? { ...existing } : {};
+    data.footer_text = footerText || undefined;
+    data.footer_icon = footerIcon || undefined;
+
+    await saveCustomization(interaction.guildId!, 'panel', data);
+
+    await interaction.editReply({
+      content: `✅ Rodapé atualizado.
+• Texto: ${footerText || '—'}
+• Ícone: ${footerIcon || '—'}`
+    });
+  } catch (error: any) {
+    logger.error(`[Embeds] Erro ao salvar rodapé: ${error}`);
+    await interaction.editReply({ content: '❌ Erro ao salvar rodapé de embed.' });
+  }
+}
+
+export async function handleEmbedThumbnailsConfigModal(interaction: any) {
+  await interaction.deferReply({ flags: 64 });
+  try {
+    const defaultThumb = interaction.fields.getTextInputValue('default_thumbnail') || '';
+    const ticketThumb = interaction.fields.getTextInputValue('ticket_thumbnail') || '';
+    const salesThumb = interaction.fields.getTextInputValue('sales_thumbnail') || '';
+
+    const existing = await loadCustomization(interaction.guildId!, 'panel');
+    const data: CustomizationData = existing ? { ...existing } : {};
+    data.thumbnail_url = defaultThumb || undefined;
+    data.config = {
+      ...(data.config || {}),
+      thumbnails: { default: defaultThumb, tickets: ticketThumb, sales: salesThumb }
+    };
+
+    await saveCustomization(interaction.guildId!, 'panel', data);
+
+    await interaction.editReply({
+      content: `✅ Thumbnails atualizadas.
+• Padrão: ${defaultThumb || '—'}
+• Tickets: ${ticketThumb || '—'}
+• Vendas: ${salesThumb || '—'}`
+    });
+  } catch (error: any) {
+    logger.error(`[Embeds] Erro ao salvar thumbnails: ${error}`);
+    await interaction.editReply({ content: '❌ Erro ao salvar thumbnails de embed.' });
+  }
+}
+
+export async function handleEmbedAuthorConfigModal(interaction: any) {
+  await interaction.deferReply({ flags: 64 });
+  try {
+    const authorName = interaction.fields.getTextInputValue('author_name') || '';
+    const authorIcon = interaction.fields.getTextInputValue('author_icon') || '';
+    const authorUrl = interaction.fields.getTextInputValue('author_url') || '';
+
+    const existing = await loadCustomization(interaction.guildId!, 'panel');
+    const data: CustomizationData = existing ? { ...existing } : {};
+    data.author_name = authorName || undefined;
+    data.author_icon = authorIcon || undefined;
+    data.author_url = authorUrl || undefined;
+
+    await saveCustomization(interaction.guildId!, 'panel', data);
+
+    await interaction.editReply({
+      content: `✅ Autor atualizado.
+• Nome: ${authorName || '—'}
+• Ícone: ${authorIcon || '—'}
+• URL: ${authorUrl || '—'}`
+    });
+  } catch (error: any) {
+    logger.error(`[Embeds] Erro ao salvar autor: ${error}`);
+    await interaction.editReply({ content: '❌ Erro ao salvar autor do embed.' });
+  }
+}
+
+export async function handleEmbedFieldsConfigModal(interaction: any) {
+  await interaction.deferReply({ flags: 64 });
+  try {
+    const f1 = interaction.fields.getTextInputValue('field1_config') || '';
+    const f2 = interaction.fields.getTextInputValue('field2_config') || '';
+    const f3 = interaction.fields.getTextInputValue('field3_config') || '';
+
+    const parseField = (s: string) => {
+      const parts = s.split('|');
+      if (parts.length < 2) return null;
+      const [name, value, inline] = parts;
+      return {
+        name: name.trim(),
+        value: value.trim(),
+        inline: inline ? inline.trim().toLowerCase() === 'true' : false
+      };
+    };
+
+    const fields = [f1, f2, f3]
+      .map(parseField)
+      .filter((x: any) => x && x.name && x.value) as Array<{ name: string; value: string; inline?: boolean }>;
+
+    const existing = await loadCustomization(interaction.guildId!, 'panel');
+    const data: CustomizationData = existing ? { ...existing } : {};
+    data.fields = fields.length > 0 ? fields : undefined;
+
+    await saveCustomization(interaction.guildId!, 'panel', data);
+
+    await interaction.editReply({
+      content: fields.length > 0 
+        ? `✅ Campos atualizados (${fields.length}).`
+        : '✅ Campos removidos.'
+    });
+  } catch (error: any) {
+    logger.error(`[Embeds] Erro ao salvar campos: ${error}`);
+    await interaction.editReply({ content: '❌ Erro ao salvar campos do embed.' });
+  }
+}
+
+/**
+ * Handler para botões de timestamp de embeds
+ */
+export async function handleTimestampButton(interaction: ButtonInteraction, customId: string) {
+  try {
+    await interaction.deferUpdate();
+
+    const existing = await loadCustomization(interaction.guildId!, 'panel');
+    const data: CustomizationData = existing ? { ...existing } : {};
+
+    let scope = 'all';
+    let enabled = true;
+    switch (customId) {
+      case 'timestamp_always':
+        scope = 'all';
+        enabled = true;
+        break;
+      case 'timestamp_tickets':
+        scope = 'tickets';
+        enabled = true;
+        break;
+      case 'timestamp_sales':
+        scope = 'sales';
+        enabled = true;
+        break;
+      case 'timestamp_never':
+        scope = 'none';
+        enabled = false;
+        break;
+      default:
+        await interaction.editReply({ content: '❌ Opção de timestamp inválida.' });
+        return;
+    }
+
+    data.timestamp = enabled;
+    data.config = { ...(data.config || {}), timestamp_scope: scope };
+
+    await saveCustomization(interaction.guildId!, 'panel', data);
+
+    const labelMap: Record<string, string> = {
+      all: 'Sempre',
+      tickets: 'Apenas Tickets',
+      sales: 'Apenas Vendas',
+      none: 'Nunca'
+    };
+
+    await interaction.editReply({ content: `✅ Timestamp atualizado: ${labelMap[scope]}.` });
+  } catch (error: any) {
+    logger.error(`[Embeds] Erro ao configurar timestamp: ${error}`);
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.reply({ content: '❌ Erro ao configurar timestamp.', flags: 64 });
+    } else {
+      await interaction.editReply({ content: '❌ Erro ao configurar timestamp.' });
+    }
+  }
+}
+
+/**
+ * Atualizar a pré-visualização aplicando customização salva
+ */
+export async function handlePreviewRefresh(interaction: ButtonInteraction) {
+  try {
+    await interaction.deferUpdate();
+
+    const config = await getOrCreateGuildConfig(interaction.guildId!);
+    const theme = getThemeColors(config);
+
+    const embed = new EmbedBuilder().setColor(theme.primary);
+
+    const saved = await loadCustomization(interaction.guildId!, 'panel');
+    if (saved) {
+      applyCustomizationToEmbed(embed, saved);
+    } else {
+      embed
+        .setAuthor({
+          name: 'Sistema Sellify',
+          iconURL: interaction.guild!.iconURL() || undefined
+        })
+        .setTitle('👁️ Pré-visualização das Personalizações')
+        .setDescription('Use os painéis para personalizar. Sem customização salva ainda.')
+        .setFooter({
+          text: `${interaction.guild!.name} • Sistema Sellify v2.0`,
+          iconURL: interaction.guild!.iconURL() || undefined
+        })
+        .setTimestamp();
+    }
+
+    const exampleRow = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('preview_example_primary')
+          .setLabel('Botão Primário')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('✨'),
+        new ButtonBuilder()
+          .setCustomId('preview_example_success')
+          .setLabel('Botão Sucesso')
+          .setStyle(ButtonStyle.Success)
+          .setEmoji('✅'),
+        new ButtonBuilder()
+          .setCustomId('preview_example_danger')
+          .setLabel('Botão Perigo')
+          .setStyle(ButtonStyle.Danger)
+          .setEmoji('❌')
+      );
+
+    const backRow = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('panel_customization')
+          .setLabel('◀️ Voltar')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId('preview_refresh')
+          .setLabel('🔄 Atualizar')
+          .setStyle(ButtonStyle.Primary)
+      );
+
+    await interaction.editReply({ embeds: [embed], components: [exampleRow, backRow] });
+  } catch (error: any) {
+    logger.error(`[Embeds] Erro ao atualizar preview: ${error}`);
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.reply({ content: '❌ Erro ao atualizar preview.', flags: 64 });
+    } else {
+      await interaction.editReply({ content: '❌ Erro ao atualizar preview.' });
+    }
+  }
+}
+
+/**
+ * Personalização de Emojis
+ */
+async function handleEmojisCustomization(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const embed = new EmbedBuilder()
+    .setColor('#FFD700')
+    .setTitle('😀 Personalização de Emojis')
+    .setDescription(
+      'Configure emojis personalizados para o bot usar.\n\n' +
+      '**Categorias de emojis:**'
+    )
+    .addFields(
+      {
+        name: '✅ Status',
+        value: 'Sucesso, erro, aviso, info',
+        inline: true
+      },
+      {
+        name: '🛒 Vendas',
+        value: 'Carrinho, dinheiro, produtos',
+        inline: true
+      },
+      {
+        name: '🎫 Tickets',
+        value: 'Abrir, fechar, prioridade',
+        inline: true
+      },
+      {
+        name: '👥 Usuários',
+        value: 'Online, offline, admin',
+        inline: true
+      },
+      {
+        name: '📊 Estatísticas',
+        value: 'Gráficos, números, trends',
+        inline: true
+      },
+      {
+        name: '⚙️ Sistema',
+        value: 'Configurações, ferramentas',
+        inline: true
+      }
+    );
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('emojis_status')
+        .setLabel('Status')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('✅'),
+      new ButtonBuilder()
+        .setCustomId('emojis_sales')
+        .setLabel('Vendas')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🛒'),
+      new ButtonBuilder()
+        .setCustomId('emojis_tickets')
+        .setLabel('Tickets')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🎫')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('emojis_users')
+        .setLabel('Usuários')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('👥'),
+      new ButtonBuilder()
+        .setCustomId('emojis_stats')
+        .setLabel('Estatísticas')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📊'),
+      new ButtonBuilder()
+        .setCustomId('emojis_system')
+        .setLabel('Sistema')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('⚙️')
+    );
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_customization')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [row, row2, backRow]
+  });
+}
+
+/**
+ * Personalização de Imagens
+ */
+async function handleImagesCustomization(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const embed = new EmbedBuilder()
+    .setColor('#FF6347')
+    .setTitle('🖼️ Personalização de Imagens')
+    .setDescription(
+      'Configure imagens e banners personalizados.\n\n' +
+      '**Tipos de imagens:**'
+    )
+    .addFields(
+      {
+        name: '🏠 Logo do Servidor',
+        value: 'Logo principal nos embeds',
+        inline: true
+      },
+      {
+        name: '🎨 Banners',
+        value: 'Imagens de fundo',
+        inline: true
+      },
+      {
+        name: '🖼️ Thumbnails',
+        value: 'Miniaturas padrão',
+        inline: true
+      },
+      {
+        name: '👋 Boas-vindas',
+        value: 'Imagem de boas-vindas',
+        inline: true
+      },
+      {
+        name: '🛒 Produtos',
+        value: 'Imagens de produtos',
+        inline: true
+      },
+      {
+        name: '📢 Anúncios',
+        value: 'Banners de anúncios',
+        inline: true
+      }
+    );
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('images_logo')
+        .setLabel('Logo')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🏠'),
+      new ButtonBuilder()
+        .setCustomId('images_banners')
+        .setLabel('Banners')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🎨'),
+      new ButtonBuilder()
+        .setCustomId('images_thumbnails')
+        .setLabel('Thumbnails')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🖼️')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('images_welcome')
+        .setLabel('Boas-vindas')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('👋'),
+      new ButtonBuilder()
+        .setCustomId('images_products')
+        .setLabel('Produtos')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🛒'),
+      new ButtonBuilder()
+        .setCustomId('images_announcements')
+        .setLabel('Anúncios')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('📢')
+    );
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_customization')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [row, row2, backRow]
+  });
+}
+
+/**
+ * Personalização de Botões
+ */
+async function handleButtonsCustomization(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const embed = new EmbedBuilder()
+    .setColor('#4169E1')
+    .setTitle('🔘 Personalização de Botões')
+    .setDescription(
+      'Configure o estilo e comportamento dos botões.\n\n' +
+      '**Opções de personalização:**'
+    )
+    .addFields(
+      {
+        name: '🎨 Estilos',
+        value: 'Primary, Secondary, Success, Danger',
+        inline: true
+      },
+      {
+        name: '📝 Labels',
+        value: 'Textos dos botões',
+        inline: true
+      },
+      {
+        name: '😀 Emojis',
+        value: 'Ícones nos botões',
+        inline: true
+      },
+      {
+        name: '🔗 Ações',
+        value: 'Comportamentos personalizados',
+        inline: true
+      },
+      {
+        name: '⚡ Estados',
+        value: 'Ativo, desabilitado, loading',
+        inline: true
+      },
+      {
+        name: '📱 Layout',
+        value: 'Organização dos botões',
+        inline: true
+      }
+    );
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('buttons_styles')
+        .setLabel('Estilos')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🎨'),
+      new ButtonBuilder()
+        .setCustomId('buttons_labels')
+        .setLabel('Labels')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📝'),
+      new ButtonBuilder()
+        .setCustomId('buttons_emojis')
+        .setLabel('Emojis')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('😀')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('buttons_actions')
+        .setLabel('Ações')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🔗'),
+      new ButtonBuilder()
+        .setCustomId('buttons_states')
+        .setLabel('Estados')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('⚡'),
+      new ButtonBuilder()
+        .setCustomId('buttons_layout')
+        .setLabel('Layout')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('📱')
+    );
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_customization')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [row, row2, backRow]
+  });
+}
+
+/**
+ * Personalização de Idioma
+ */
+async function handleLanguageCustomization(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const embed = new EmbedBuilder()
+    .setColor('#32CD32')
+    .setTitle('🌍 Personalização de Idioma')
+    .setDescription(
+      'Configure o idioma do bot para seu servidor.\n\n' +
+      '**Idiomas disponíveis:**'
+    )
+    .addFields(
+      {
+        name: '🇧🇷 Português (Brasil)',
+        value: 'Idioma padrão - Ativo',
+        inline: true
+      },
+      {
+        name: '🇺🇸 English (US)',
+        value: 'Disponível',
+        inline: true
+      },
+      {
+        name: '🇪🇸 Español',
+        value: 'Disponível',
+        inline: true
+      }
+    );
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('language_pt_br')
+        .setLabel('Português (BR)')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🇧🇷'),
+      new ButtonBuilder()
+        .setCustomId('language_en_us')
+        .setLabel('English (US)')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🇺🇸')
+        .setDisabled(true),
+      new ButtonBuilder()
+        .setCustomId('language_es')
+        .setLabel('Español')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🇪🇸')
+        .setDisabled(true)
+    );
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_customization')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [row, backRow]
+  });
+}
+
+/**
+ * Personalização de Fuso Horário
+ */
+async function handleTimezoneCustomization(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const embed = new EmbedBuilder()
+    .setColor('#FF69B4')
+    .setTitle('⏰ Personalização de Fuso Horário')
+    .setDescription(
+      'Configure o fuso horário para timestamps e agendamentos.\n\n' +
+      '**Fusos horários populares:**'
+    )
+    .addFields(
+      {
+        name: '🇧🇷 Brasil',
+        value: 'America/Sao_Paulo (UTC-3)',
+        inline: true
+      },
+      {
+        name: '🇺🇸 EUA (Leste)',
+        value: 'America/New_York (UTC-5)',
+        inline: true
+      },
+      {
+        name: '🇬🇧 Reino Unido',
+        value: 'Europe/London (UTC+0)',
+        inline: true
+      },
+      {
+        name: '🇯🇵 Japão',
+        value: 'Asia/Tokyo (UTC+9)',
+        inline: true
+      },
+      {
+        name: '🇦🇺 Austrália',
+        value: 'Australia/Sydney (UTC+10)',
+        inline: true
+      },
+      {
+        name: '⚙️ Personalizado',
+        value: 'Digite seu fuso horário',
+        inline: true
+      }
+    );
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('timezone_brazil')
+        .setLabel('Brasil (UTC-3)')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🇧🇷'),
+      new ButtonBuilder()
+        .setCustomId('timezone_usa')
+        .setLabel('EUA (UTC-5)')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🇺🇸'),
+      new ButtonBuilder()
+        .setCustomId('timezone_uk')
+        .setLabel('Reino Unido (UTC+0)')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🇬🇧')
+    );
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('timezone_japan')
+        .setLabel('Japão (UTC+9)')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🇯🇵'),
+      new ButtonBuilder()
+        .setCustomId('timezone_australia')
+        .setLabel('Austrália (UTC+10)')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('🇦🇺'),
+      new ButtonBuilder()
+        .setCustomId('timezone_custom')
+        .setLabel('Personalizado')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('⚙️')
+    );
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_customization')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [row, row2, backRow]
+  });
+}
+
+/**
+ * Preview de Personalização
+ */
+async function handlePreviewCustomization(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
+
+  const embed = new EmbedBuilder()
+    .setColor(theme.primary)
+    .setAuthor({
+      name: 'Sistema Sellify',
+      iconURL: interaction.guild!.iconURL() || undefined
+    })
+    .setTitle('👁️ Pré-visualização das Personalizações')
+    .setDescription(
+      'Este é um exemplo de como seus embeds aparecerão com as configurações atuais.\n\n' +
+      '**Configurações ativas:**'
+    )
+    .addFields(
+      {
+        name: '🎨 Cor Principal',
+        value: `\`${config.theme_primary_color || config.embed_color || '#EB459E'}\``,
+        inline: true
+      },
+      {
+        name: '✅ Cor de Sucesso',
+        value: `\`${config.theme_success_color || '#57F287'}\``,
+        inline: true
+      },
+      {
+        name: '❌ Cor de Perigo',
+        value: `\`${config.theme_danger_color || '#ED4245'}\``,
+        inline: true
+      }
+    )
+    .setFooter({
+      text: `${interaction.guild!.name} • Sistema Sellify v2.0`,
+      iconURL: interaction.guild!.iconURL() || undefined
+    })
     .setTimestamp();
 
-  await interaction.editReply({ embeds: [embed] });
+  // Exemplo de botões com as configurações atuais
+  const exampleRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('preview_example_primary')
+        .setLabel('Botão Primário')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('✨'),
+      new ButtonBuilder()
+        .setCustomId('preview_example_success')
+        .setLabel('Botão Sucesso')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('✅'),
+      new ButtonBuilder()
+        .setCustomId('preview_example_danger')
+        .setLabel('Botão Perigo')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('❌')
+    );
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_customization')
+        .setLabel('◀️ Voltar')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('preview_refresh')
+        .setLabel('🔄 Atualizar')
+        .setStyle(ButtonStyle.Primary)
+    );
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [exampleRow, backRow]
+  });
+}
+
+/**
+ * Handler para botões de personalização
+ */
+export async function handleCustomButton(interaction: ButtonInteraction, customId: string) {
+  try {
+    logger.info(`[DEBUG] handleCustomButton called with customId: ${customId}`);
+    
+    // Verificar se é um botão de tema
+    if (customId.startsWith('theme_')) {
+      logger.info(`[DEBUG] Dispatching to handleThemeButton for customId: ${customId}`);
+      await handleThemeButton(interaction, customId);
+      return;
+    }
+
+    // Verificar se é um botão de mensagem
+    if (customId.startsWith('messages_')) {
+      logger.info(`[DEBUG] Dispatching to handleMessageButton for customId: ${customId}`);
+      await handleMessageButton(interaction, customId);
+      return;
+    }
+
+    // Verificar se é um botão de embed
+    if (customId.startsWith('embeds_')) {
+      logger.info(`[DEBUG] Dispatching to handleEmbedButton for customId: ${customId}`);
+      await handleEmbedButton(interaction, customId);
+      return;
+    }
+
+    switch (customId) {
+      case 'custom_theme':
+        logger.info(`[DEBUG] Dispatching to handleThemeCustomization`);
+        await handleThemeCustomization(interaction);
+        break;
+      case 'custom_messages':
+        logger.info(`[DEBUG] Dispatching to handleMessagesCustomization`);
+        await handleMessagesCustomization(interaction);
+        break;
+      case 'custom_embeds':
+        logger.info(`[DEBUG] Dispatching to handleEmbedsCustomization`);
+        await handleEmbedsCustomization(interaction);
+        break;
+      case 'custom_emojis':
+        logger.info(`[DEBUG] Dispatching to handleEmojisCustomization`);
+        await handleEmojisCustomization(interaction);
+        break;
+      case 'custom_images':
+        logger.info(`[DEBUG] Dispatching to handleImagesCustomization`);
+        await handleImagesCustomization(interaction);
+        break;
+      case 'custom_buttons':
+        logger.info(`[DEBUG] Dispatching to handleButtonsCustomization`);
+        await handleButtonsCustomization(interaction);
+        break;
+      case 'custom_language':
+        logger.info(`[DEBUG] Dispatching to handleLanguageCustomization`);
+        await handleLanguageCustomization(interaction);
+        break;
+      case 'custom_timezone':
+        logger.info(`[DEBUG] Dispatching to handleTimezoneCustomization`);
+        await handleTimezoneCustomization(interaction);
+        break;
+      case 'custom_preview':
+        logger.info(`[DEBUG] Dispatching to handlePreviewCustomization`);
+        await handlePreviewCustomization(interaction);
+        break;
+      default:
+        logger.warning(`[DEBUG] Unknown custom button customId: ${customId}`);
+        await interaction.deferReply({ flags: 64 });
+        await interaction.editReply({ content: '❌ Opção de personalização não encontrada.' });
+    }
+  } catch (error) {
+    logger.error(`[DEBUG] Error in handleCustomButton: ${error}`);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: 'Erro interno. Tente novamente.', flags: 64 });
+    }
+  }
+}
+
+/**
+ * Painel de Setup Público (Criação de Painéis para Usuários)
+ */
+async function handleSetupPublicPanel(interaction: ButtonInteraction) {
+  await interaction.deferReply({ flags: 64 });
+
+  const config = await getOrCreateGuildConfig(interaction.guildId!);
+  const theme = getThemeColors(config);
+
+  const embed = new EmbedBuilder()
+    .setColor(theme.primary)
+    .setTitle('🎯 Setup de Painéis Públicos')
+    .setDescription(
+      'Crie painéis interativos com botões para seus usuários acessarem as funcionalidades do bot sem precisar digitar comandos!\n\n' +
+      '**Como usar:**\n' +
+      '```/setup-publico canal:#nome-do-canal tipo:escolha```\n\n' +
+      '**Tipos de painéis disponíveis:**'
+    )
+    .addFields(
+      {
+        name: '🛍️ Painel de Compras',
+        value: 'Botões para: Catálogo, Meus Pedidos, Cupons\n`tipo:shopping`',
+        inline: true
+      },
+      {
+        name: '🆘 Painel de Suporte',
+        value: 'Botões para: Abrir Ticket, Meus Tickets, FAQ\n`tipo:support`',
+        inline: true
+      },
+      {
+        name: '⭐ Painel de Avaliações',
+        value: 'Botões para: Avaliar Compra, Ver Avaliações\n`tipo:reviews`',
+        inline: true
+      },
+      {
+        name: '🎯 Painel Completo',
+        value: 'Todos os botões acima em um só painel!\n`tipo:complete`',
+        inline: false
+      },
+      {
+        name: '💡 Exemplo Prático',
+        value: 
+          '```\n' +
+          '/setup-publico canal:#loja tipo:complete\n' +
+          '```\n' +
+          'Isso criará um painel completo no canal #loja com todos os botões para os usuários interagirem!',
+        inline: false
+      },
+      {
+        name: '✨ Benefícios',
+        value:
+          '• Usuários não precisam decorar comandos\n' +
+          '• Interface visual e moderna\n' +
+          '• Experiência mobile-friendly\n' +
+          '• Menos erros de digitação\n' +
+          '• Mais engajamento dos usuários',
+        inline: false
+      }
+    )
+    .setFooter({ text: 'Use /setup-publico para criar um painel!' })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('panel_main')
+        .setLabel('◀️ Voltar ao Painel')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  await interaction.editReply({ embeds: [embed], components: [row] });
+}
+
+/**
+ * Handler para modal de configuração de mensagens de boas-vindas
+ * Agora com suporte a personalização visual avançada
+ */
+export async function handleWelcomeMessageConfigModal(interaction: any) {
+  try {
+    await interaction.deferReply({ flags: 64 });
+
+    const channelId = interaction.fields.getTextInputValue('welcome_channel');
+    const message = interaction.fields.getTextInputValue('welcome_message');
+    const format = interaction.fields.getTextInputValue('welcome_format').toLowerCase();
+    const color = interaction.fields.getTextInputValue('welcome_color') || '#00ff00';
+    const enabled = interaction.fields.getTextInputValue('welcome_enabled').toLowerCase() === 'sim';
+
+    // Verificar se o canal existe
+    const channel = interaction.guild!.channels.cache.get(channelId);
+    
+    if (!channel) {
+      await interaction.editReply({
+        content: '❌ Canal não encontrado. Verifique o ID e tente novamente.'
+      });
+      return;
+    }
+
+    // Validar formato
+    if (!['embed', 'texto'].includes(format)) {
+      await interaction.editReply({
+        content: '❌ Formato inválido. Use "embed" ou "texto".'
+      });
+      return;
+    }
+
+    // Validar cor (se fornecida)
+    if (color && !/^#[0-9A-Fa-f]{6}$/.test(color)) {
+      await interaction.editReply({
+        content: '❌ Cor inválida. Use formato hexadecimal (ex: #00ff00).'
+      });
+      return;
+    }
+
+    // Criar configuração personalizada
+    const welcomeConfig = {
+      message: message,
+      format: format,
+      color: color,
+      channel_id: channelId,
+      enabled: enabled
+    };
+
+    // Atualizar configuração usando a tabela guild_configs existente
+    await updateGuildConfig(interaction.guildId!, {
+      welcome_message: enabled ? JSON.stringify(welcomeConfig) : undefined,
+      log_channel_id: enabled ? channelId : undefined
+    });
+
+    const formatText = format === 'embed' ? '📋 Embed' : '📝 Texto simples';
+    
+    await interaction.editReply({
+      content: enabled 
+        ? `✅ Mensagens de boas-vindas personalizadas configuradas!\n\n**Canal:** ${channel}\n**Formato:** ${formatText}\n**Cor:** ${color}\n**Mensagem:** ${message}\n\n⚠️ **Nota:** O bot precisa estar online para enviar as mensagens.`
+        : '✅ Mensagens de boas-vindas personalizadas desativadas!'
+    });
+  } catch (error) {
+    logger.error(`Erro ao configurar mensagens personalizadas: ${error}`);
+    
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: '❌ Erro ao salvar configuração. Tente novamente.',
+        flags: 64
+      });
+    } else {
+      await interaction.editReply({
+        content: '❌ Erro ao salvar configuração. Tente novamente.'
+      });
+    }
+  }
+}
+
+/**
+ * Handler para modal de configuração de mensagens de despedida
+ */
+export async function handleGoodbyeMessageConfigModal(interaction: any) {
+  await interaction.deferReply({ flags: 64 });
+
+  const channelId = interaction.fields.getTextInputValue('goodbye_channel');
+  const message = interaction.fields.getTextInputValue('goodbye_message');
+  const enabled = interaction.fields.getTextInputValue('goodbye_enabled').toLowerCase() === 'sim';
+
+  try {
+    const channel = interaction.guild!.channels.cache.get(channelId);
+    
+    if (!channel) {
+      await interaction.editReply({
+        content: '❌ Canal não encontrado. Verifique o ID e tente novamente.'
+      });
+      return;
+    }
+
+    // Salvar configuração
+    const { error } = await supabase
+      .from('automation_config')
+      .upsert({
+        guild_id: interaction.guildId!,
+        config_type: 'goodbye_message_custom',
+        config_data: { channel_id: channelId, message: message, enabled: enabled },
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'guild_id,config_type' });
+
+    if (error) throw new Error(error.message);
+
+    await interaction.editReply({
+      content: enabled 
+        ? `✅ Mensagens de despedida configuradas!\n\n**Canal:** ${channel}\n**Mensagem:** ${message}`
+        : '✅ Mensagens de despedida desativadas!'
+    });
+  } catch (error) {
+    logger.error(`Erro ao configurar mensagens de despedida: ${error}`);
+    await interaction.editReply({
+      content: '❌ Erro ao salvar configuração. Tente novamente.'
+    });
+  }
+}
+
+/**
+ * Handler para modal de configuração de template de anúncios
+ */
+export async function handleAnnouncementTemplateModal(interaction: any) {
+  await interaction.deferReply({ flags: 64 });
+
+  const title = interaction.fields.getTextInputValue('announcement_title');
+  const color = interaction.fields.getTextInputValue('welcome_color') || '#00ff00';
+  const footer = interaction.fields.getTextInputValue('announcement_footer') || '';
+
+  try {
+    // Validar cor HEX
+    if (!/^#[0-9A-F]{6}$/i.test(color)) {
+      await interaction.editReply({
+        content: '❌ Cor inválida. Use o formato HEX (#RRGGBB).'
+      });
+      return;
+    }
+
+    // Salvar template de anúncios
+    const { error } = await supabase
+      .from('automation_config')
+      .upsert({
+        guild_id: interaction.guildId!,
+        config_type: 'announcement_template',
+        config_data: { title: title, color: color, footer: footer },
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'guild_id,config_type' });
+
+    if (error) throw new Error(error.message);
+
+    await interaction.editReply({
+      content: `✅ Template de anúncios configurado!\n\n**Título:** ${title}\n**Cor:** ${color}\n**Rodapé:** ${footer || 'Nenhum'}`
+    });
+  } catch (error) {
+    logger.error(`Erro ao configurar template de anúncios: ${error}`);
+    await interaction.editReply({
+      content: '❌ Erro ao salvar configuração. Tente novamente.'
+    });
+  }
+}
+
+/**
+ * Handler para processar modal de cor principal
+ */
+export async function handleThemePrimaryColorModal(interaction: any) {
+  const primaryColor = interaction.fields.getTextInputValue('primary_color');
+  
+  try {
+    // Validar formato HEX
+    if (!/^#[0-9A-F]{6}$/i.test(primaryColor)) {
+      await interaction.reply({ 
+        content: '❌ Formato de cor inválido! Use o formato HEX (#RRGGBB)', 
+        flags: 64 
+      });
+      return;
+    }
+
+    // Salvar no banco de dados
+    const { error } = await supabase
+      .from('guild_configs')
+      .update({ 
+        theme_primary_color: primaryColor,
+        updated_at: new Date().toISOString()
+      })
+      .eq('guild_id', interaction.guild.id);
+
+    if (error) {
+      logger.error(`Erro ao salvar cor principal: ${error.message}`);
+      await interaction.reply({ 
+        content: '❌ Erro ao salvar configuração.', 
+        flags: 64 
+      });
+      return;
+    }
+
+    await interaction.reply({ 
+      content: `✅ Cor principal configurada para: ${primaryColor}`, 
+      flags: 64 
+    });
+  } catch (error) {
+    logger.error(`Erro no modal de cor principal: ${error}`);
+    await interaction.reply({ 
+      content: '❌ Erro interno do servidor.', 
+      flags: 64 
+    });
+  }
+}
+
+/**
+ * Handler para processar modal de cor de sucesso
+ */
+export async function handleThemeSuccessColorModal(interaction: any) {
+  const successColor = interaction.fields.getTextInputValue('success_color');
+  
+  try {
+    // Validar formato HEX
+    if (!/^#[0-9A-F]{6}$/i.test(successColor)) {
+      await interaction.reply({ 
+        content: '❌ Formato de cor inválido! Use o formato HEX (#RRGGBB)', 
+        flags: 64 
+      });
+      return;
+    }
+
+    // Salvar no banco de dados
+    const { error } = await supabase
+      .from('guild_configs')
+      .update({ 
+        theme_success_color: successColor,
+        updated_at: new Date().toISOString()
+      })
+      .eq('guild_id', interaction.guild.id);
+
+    if (error) {
+      logger.error(`Erro ao salvar cor de sucesso: ${error.message}`);
+      await interaction.reply({ 
+        content: '❌ Erro ao salvar configuração.', 
+        flags: 64 
+      });
+      return;
+    }
+
+    await interaction.reply({ 
+      content: `✅ Cor de sucesso configurada para: ${successColor}`, 
+      flags: 64 
+    });
+  } catch (error) {
+    logger.error(`Erro no modal de cor de sucesso: ${error}`);
+    await interaction.reply({ 
+      content: '❌ Erro interno do servidor.', 
+      flags: 64 
+    });
+  }
+}
+
+/**
+ * Handler para processar modal de cor de perigo
+ */
+export async function handleThemeDangerColorModal(interaction: any) {
+  const dangerColor = interaction.fields.getTextInputValue('danger_color');
+  
+  try {
+    // Validar formato HEX
+    if (!/^#[0-9A-F]{6}$/i.test(dangerColor)) {
+      await interaction.reply({ 
+        content: '❌ Formato de cor inválido! Use o formato HEX (#RRGGBB)', 
+        flags: 64 
+      });
+      return;
+    }
+
+    // Salvar no banco de dados
+    const { error } = await supabase
+      .from('guild_configs')
+      .update({ 
+        theme_danger_color: dangerColor,
+        updated_at: new Date().toISOString()
+      })
+      .eq('guild_id', interaction.guild.id);
+
+    if (error) {
+      logger.error(`Erro ao salvar cor de perigo: ${error.message}`);
+      await interaction.reply({ 
+        content: '❌ Erro ao salvar configuração.', 
+        flags: 64 
+      });
+      return;
+    }
+
+    await interaction.reply({ 
+      content: `✅ Cor de perigo configurada para: ${dangerColor}`, 
+      flags: 64 
+    });
+  } catch (error) {
+    logger.error(`Erro no modal de cor de perigo: ${error}`);
+    await interaction.reply({ 
+      content: '❌ Erro interno do servidor.', 
+      flags: 64 
+    });
+  }
+}
+
+/**
+ * Modal para configuração de mensagens de tickets
+ */
+export async function handleTicketMessagesConfigModal(interaction: any) {
+  const welcomeMessage = interaction.fields.getTextInputValue('welcome_message');
+  
+  try {
+    await updateGuildConfig(interaction.guildId!, {
+      welcome_message: welcomeMessage
+    });
+
+    await interaction.reply({
+      content: '✅ Mensagem de boas-vindas de tickets atualizada com sucesso!',
+      flags: 64
+    });
+
+    logger.info(`Ticket welcome message updated for guild ${interaction.guildId}`);
+  } catch (error) {
+    logger.error(`Error updating ticket welcome message: ${error}`);
+    await interaction.reply({
+      content: '❌ Erro ao atualizar mensagem de tickets.',
+      flags: 64
+    });
+  }
+}
+
+/**
+ * Modal para configuração de mensagens de vendas
+ */
+export async function handleSalesMessagesConfigModal(interaction: any) {
+  const purchaseMessage = interaction.fields.getTextInputValue('purchase_message');
+  
+  try {
+    await updateGuildConfig(interaction.guildId!, {
+      purchase_message: purchaseMessage
+    });
+
+    await interaction.reply({
+      content: '✅ Mensagem de compra atualizada com sucesso!',
+      flags: 64
+    });
+
+    logger.info(`Purchase message updated for guild ${interaction.guildId}`);
+  } catch (error) {
+    logger.error(`Error updating purchase message: ${error}`);
+    await interaction.reply({
+      content: '❌ Erro ao atualizar mensagem de vendas.',
+      flags: 64
+    });
+  }
+}
+
+/**
+ * Modal para configuração de mensagens de moderação
+ */
+export async function handleModerationMessagesConfigModal(interaction: any) {
+  const logChannelId = interaction.fields.getTextInputValue('log_channel_id');
+  
+  try {
+    await updateGuildConfig(interaction.guildId!, {
+      log_channel_id: logChannelId
+    });
+
+    await interaction.reply({
+      content: '✅ Canal de logs de moderação configurado com sucesso!',
+      flags: 64
+    });
+
+    logger.info(`Moderation log channel updated for guild ${interaction.guildId}`);
+  } catch (error) {
+    logger.error(`Error updating moderation log channel: ${error}`);
+    await interaction.reply({
+      content: '❌ Erro ao atualizar configuração de moderação.',
+      flags: 64
+    });
+  }
 }

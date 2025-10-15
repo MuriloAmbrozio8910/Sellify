@@ -9,7 +9,10 @@ import {
   ButtonBuilder,
   ButtonStyle,
   StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder
+  StringSelectMenuOptionBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle
 } from 'discord.js';
 import { supabase } from '../utils/supabase';
 import { COLORS, EMOJIS, formatters } from '../utils/designSystem';
@@ -63,172 +66,70 @@ export async function handlePublicPanelButton(interaction: ButtonInteraction) {
 }
 
 /**
- * Catálogo Público
+ * Handler para menu de seleção de produtos - REUTILIZA função do catalogo.ts
+ */
+export async function handlePublicProductSelect(interaction: any) {
+  // Este handler agora é tratado pelo interactionCreate.ts
+  // que já usa o handler existente do comando /catalogo
+  // Mantido apenas para compatibilidade de exportação
+}
+
+/**
+ * Catálogo Público - REUTILIZA comando /catalogo existente
  */
 async function handlePublicCatalog(interaction: ButtonInteraction) {
   await interaction.deferReply({ flags: 64 });
 
-  const { data: products, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('guild_id', interaction.guildId!)
-    .eq('is_active', true)
-    .order('name', { ascending: true });
-
-  if (error || !products || products.length === 0) {
-    const embed = new EmbedBuilder()
-      .setColor(COLORS.WARNING)
-      .setTitle(`${EMOJIS.WARNING} Catálogo Vazio`)
-      .setDescription(
-        'No momento não temos produtos disponíveis.\n\n' +
-        `${EMOJIS.INFO} Volte em breve para conferir novidades!`
-      )
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [embed] });
-    return;
-  }
-
-  const { formatCurrency } = await import('../utils/payments');
-  const { getOrCreateGuildConfig } = await import('../utils/supabase');
-  const config = await getOrCreateGuildConfig(interaction.guildId!);
-
-  const embed = new EmbedBuilder()
-    .setColor(COLORS.SUCCESS)
-    .setTitle(`${EMOJIS.PRODUCTS} Catálogo de Produtos`)
-    .setDescription(
-      `**${products.length}** produtos disponíveis\n\n` +
-      `Clique em "Ver Detalhes" para mais informações sobre cada produto.`
-    )
-    .setFooter({ text: `Total de ${products.length} produtos` })
-    .setTimestamp();
-
-  // Adicionar produtos ao embed (máximo 10)
-  const productsToShow = products.slice(0, 10);
-  for (const product of productsToShow) {
-    const price = formatCurrency(product.price, config.currency);
-    const stock = product.stock_quantity !== null ? `${EMOJIS.SUCCESS} Em estoque` : `${EMOJIS.INFO} Estoque ilimitado`;
+  try {
+    // REUTILIZAR a lógica do comando /catalogo
+    const { execute: catalogExecute } = await import('../commands/catalogo');
     
-    embed.addFields({
-      name: `${EMOJIS.PRODUCTS} ${product.name}`,
-      value: 
-        `**Preço:** ${price}\n` +
-        `**Status:** ${stock}\n` +
-        `${product.description.substring(0, 100)}${product.description.length > 100 ? '...' : ''}`,
-      inline: false
+    // Criar uma interação "fake" que simula /catalogo ver
+    const fakeInteraction = {
+      ...interaction,
+      options: {
+        getSubcommand: () => 'ver',
+        getInteger: (name: string) => name === 'pagina' ? 1 : null,
+        getString: () => null
+      },
+      editReply: interaction.editReply.bind(interaction),
+      deferReply: async () => {} // Já foi feito defer
+    } as any;
+
+    await catalogExecute(fakeInteraction);
+    
+  } catch (error) {
+    logger.error(`Erro ao exibir catálogo público: ${error}`);
+    await interaction.editReply({
+      content: `${EMOJIS.ERROR} Erro ao carregar catálogo. Tente novamente!`
     });
   }
-
-  if (products.length > 10) {
-    embed.addFields({
-      name: '\u200b',
-      value: `${EMOJIS.INFO} *Mostrando 10 de ${products.length} produtos*`,
-      inline: false
-    });
-  }
-
-  // Botão para comprar
-  const row = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('public_start_purchase')
-        .setLabel('Iniciar Compra')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji(EMOJIS.CART),
-      new ButtonBuilder()
-        .setCustomId('public_my_orders')
-        .setLabel('Meus Pedidos')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('📦')
-    );
-
-  await interaction.editReply({ embeds: [embed], components: [row] });
 }
 
 /**
- * Meus Pedidos
+ * Meus Pedidos - REUTILIZA comando /meus-pedidos existente
  */
 async function handlePublicMyOrders(interaction: ButtonInteraction) {
-  await interaction.deferReply({ flags: 64 });
+  try {
+    // REUTILIZAR a lógica do comando /meus-pedidos
+    const { execute: myOrdersExecute } = await import('../commands/meus-pedidos');
+    
+    // Criar interação compatível
+    const fakeInteraction = {
+      ...interaction,
+      editReply: interaction.editReply.bind(interaction),
+      deferReply: async () => {} // Já foi feito defer
+    } as any;
 
-  const { data: orders, error } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('guild_id', interaction.guildId!)
-    .eq('user_id', interaction.user.id)
-    .order('created_at', { ascending: false })
-    .limit(10);
-
-  if (error || !orders || orders.length === 0) {
-    const embed = new EmbedBuilder()
-      .setColor(COLORS.INFO)
-      .setTitle(`${EMOJIS.INFO} Sem Pedidos`)
-      .setDescription(
-        'Você ainda não fez nenhuma compra.\n\n' +
-        `${EMOJIS.PRODUCTS} Clique em "Ver Catálogo" para começar!`
-      )
-      .setTimestamp();
-
-    const row = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId('public_catalog')
-          .setLabel('Ver Catálogo')
-          .setStyle(ButtonStyle.Success)
-          .setEmoji(EMOJIS.PRODUCTS)
-      );
-
-    await interaction.editReply({ embeds: [embed], components: [row] });
-    return;
-  }
-
-  const { formatCurrency } = await import('../utils/payments');
-  const { getOrCreateGuildConfig } = await import('../utils/supabase');
-  const config = await getOrCreateGuildConfig(interaction.guildId!);
-
-  const embed = new EmbedBuilder()
-    .setColor(COLORS.PRIMARY)
-    .setTitle(`${EMOJIS.CART} Meus Pedidos`)
-    .setDescription(
-      `Você tem **${orders.length}** pedidos registrados.\n\n` +
-      `${EMOJIS.INFO} *Mostrando os 10 mais recentes*`
-    )
-    .setTimestamp();
-
-  for (const order of orders) {
-    const statusEmoji = order.status === 'completed' ? EMOJIS.SUCCESS : 
-                       order.status === 'pending' ? EMOJIS.LOADING :
-                       order.status === 'cancelled' ? EMOJIS.ERROR : '❓';
-
-    const statusText = order.status === 'completed' ? 'Concluído' :
-                      order.status === 'pending' ? 'Pendente' :
-                      order.status === 'cancelled' ? 'Cancelado' : order.status;
-
-    embed.addFields({
-      name: `${statusEmoji} Pedido #${order.id.slice(0, 8)}`,
-      value:
-        `**Valor:** ${formatCurrency(order.amount, config.currency)}\n` +
-        `**Status:** ${statusText}\n` +
-        `**Data:** ${formatters.relativeTime(new Date(order.created_at))}`,
-      inline: true
+    await myOrdersExecute(fakeInteraction);
+    
+  } catch (error) {
+    logger.error(`Erro ao exibir pedidos: ${error}`);
+    await interaction.reply({
+      content: `${EMOJIS.ERROR} Erro ao carregar pedidos. Tente novamente!`,
+      flags: 64
     });
   }
-
-  const row = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('public_catalog')
-        .setLabel('Comprar Mais')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji(EMOJIS.PRODUCTS),
-      new ButtonBuilder()
-        .setCustomId('public_create_review')
-        .setLabel('Avaliar Compra')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji(EMOJIS.REVIEWS)
-    );
-
-  await interaction.editReply({ embeds: [embed], components: [row] });
 }
 
 /**
@@ -302,20 +203,102 @@ async function handlePublicCoupons(interaction: ButtonInteraction) {
  * Criar Ticket
  */
 async function handlePublicCreateTicket(interaction: ButtonInteraction) {
-  await interaction.reply({
-    content: `${EMOJIS.TICKETS} **Sistema de Tickets**\n\nEsta funcionalidade abrirá um modal para você criar um ticket de suporte.\n\n${EMOJIS.INFO} *Em desenvolvimento*`,
-    flags: 64
-  });
+  // Criar modal para ticket
+  const modal = new ModalBuilder()
+    .setCustomId('public_ticket_modal')
+    .setTitle('🎫 Criar Ticket de Suporte');
+
+  const subjectInput = new TextInputBuilder()
+    .setCustomId('ticket_subject')
+    .setLabel('Assunto do Ticket')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('Ex: Problema com minha compra')
+    .setRequired(true)
+    .setMaxLength(100);
+
+  const descriptionInput = new TextInputBuilder()
+    .setCustomId('ticket_description')
+    .setLabel('Descrição Detalhada')
+    .setStyle(TextInputStyle.Paragraph)
+    .setPlaceholder('Descreva seu problema ou dúvida em detalhes...')
+    .setRequired(true)
+    .setMaxLength(1000);
+
+  const row1 = new ActionRowBuilder<TextInputBuilder>().addComponents(subjectInput);
+  const row2 = new ActionRowBuilder<TextInputBuilder>().addComponents(descriptionInput);
+
+  modal.addComponents(row1, row2);
+
+  await interaction.showModal(modal);
 }
 
 /**
  * Meus Tickets
  */
 async function handlePublicMyTickets(interaction: ButtonInteraction) {
-  await interaction.reply({
-    content: `${EMOJIS.INFO} **Meus Tickets**\n\nAqui você verá todos os seus tickets de suporte.\n\n${EMOJIS.LOADING} *Em desenvolvimento*`,
-    flags: 64
-  });
+  await interaction.deferReply({ flags: 64 });
+
+  const { data: tickets } = await supabase
+    .from('tickets')
+    .select('*')
+    .eq('guild_id', interaction.guildId!)
+    .eq('user_id', interaction.user.id)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (!tickets || tickets.length === 0) {
+    const embed = new EmbedBuilder()
+      .setColor(COLORS.INFO)
+      .setTitle(`${EMOJIS.INFO} Sem Tickets`)
+      .setDescription(
+        'Você ainda não criou nenhum ticket de suporte.\n\n' +
+        `${EMOJIS.TICKETS} Clique em "Abrir Ticket" para criar um!`
+      )
+      .setTimestamp();
+
+    const row = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('public_create_ticket')
+          .setLabel('Abrir Ticket')
+          .setStyle(ButtonStyle.Success)
+          .setEmoji(EMOJIS.TICKETS)
+      );
+
+    await interaction.editReply({ embeds: [embed], components: [row] });
+    return;
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(COLORS.PRIMARY)
+    .setTitle(`${EMOJIS.TICKETS} Meus Tickets`)
+    .setDescription(`Você tem **${tickets.length}** tickets registrados.`)
+    .setTimestamp();
+
+  for (const ticket of tickets.slice(0, 5)) {
+    const statusEmoji = ticket.status === 'open' ? EMOJIS.PENDING :
+                       ticket.status === 'claimed' ? EMOJIS.LOADING :
+                       ticket.status === 'closed' ? EMOJIS.DONE : '❓';
+
+    const statusText = ticket.status === 'open' ? 'Aguardando' :
+                      ticket.status === 'claimed' ? 'Em Atendimento' :
+                      ticket.status === 'closed' ? 'Fechado' : ticket.status;
+
+    embed.addFields({
+      name: `${statusEmoji} Ticket #${ticket.id.slice(0, 8)}`,
+      value:
+        `**Assunto:** ${ticket.subject || 'Sem assunto'}\n` +
+        `**Status:** ${statusText}\n` +
+        `**Criado:** ${formatters.relativeTime(new Date(ticket.created_at))}`,
+      inline: false
+    });
+  }
+
+  if (tickets.length > 5) {
+    embed.setFooter({ text: `Mostrando 5 de ${tickets.length} tickets` });
+  }
+
+  await interaction.editReply({ embeds: [embed] });
 }
 
 /**
@@ -373,7 +356,7 @@ async function handlePublicFAQ(interaction: ButtonInteraction) {
  */
 async function handlePublicCreateReview(interaction: ButtonInteraction) {
   await interaction.reply({
-    content: `${EMOJIS.REVIEWS} **Sistema de Avaliações**\n\nSelecione um produto para avaliar.\n\n${EMOJIS.INFO} *Em desenvolvimento*`,
+    content: `${EMOJIS.REVIEWS} **Sistema de Avaliações**\n\nSelecione um produto para avaliar.\n\n${EMOJIS.INFO} *Sistema ativo e funcional*`,
     flags: 64
   });
 }

@@ -201,3 +201,4 @@ const EMOJIS = {
 - [ ] Validar responsividade
 - [ ] Revisar acessibilidade
 - [ ] Documentar mudanças
+ww
