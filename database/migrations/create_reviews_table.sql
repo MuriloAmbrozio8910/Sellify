@@ -44,8 +44,8 @@ CREATE INDEX IF NOT EXISTS idx_seller_reviews_guild ON seller_reviews(guild_id);
 CREATE INDEX IF NOT EXISTS idx_seller_reviews_category ON seller_reviews(category);
 
 -- View para estatísticas de produtos
-CREATE OR REPLACE VIEW product_ratings_summary AS
-SELECT 
+CREATE OR REPLACE VIEW product_ratings_summary WITH (security_invoker = true) AS
+SELECT
   product_id,
   COUNT(*) as total_reviews,
   AVG(rating)::NUMERIC(3,2) as average_rating,
@@ -59,8 +59,8 @@ WHERE is_approved = TRUE
 GROUP BY product_id;
 
 -- View para estatísticas de vendedores
-CREATE OR REPLACE VIEW seller_ratings_summary AS
-SELECT 
+CREATE OR REPLACE VIEW seller_ratings_summary WITH (security_invoker = true) AS
+SELECT
   seller_id,
   guild_id,
   category,
@@ -84,3 +84,11 @@ COMMENT ON COLUMN product_reviews.is_anonymous IS 'Se a avaliação deve ser an�
 COMMENT ON COLUMN product_reviews.is_approved IS 'Se a avaliação foi aprovada por moderador';
 
 COMMENT ON COLUMN seller_reviews.category IS 'Categoria: support (suporte), sales (vendas), general (geral)';
+
+ALTER TABLE public.product_reviews ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.product_reviews FROM anon, authenticated;
+GRANT ALL ON public.product_reviews TO service_role;
+
+ALTER TABLE public.seller_reviews ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.seller_reviews FROM anon, authenticated;
+GRANT ALL ON public.seller_reviews TO service_role;

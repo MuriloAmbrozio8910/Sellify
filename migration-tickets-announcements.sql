@@ -146,17 +146,17 @@ ALTER TABLE moderator_notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_interactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scheduled_automations ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Service role full access to tickets" ON support_tickets FOR ALL USING (true);
-CREATE POLICY "Service role full access to ticket_messages" ON ticket_messages FOR ALL USING (true);
-CREATE POLICY "Service role full access to announcements" ON announcements FOR ALL USING (true);
-CREATE POLICY "Service role full access to ticket_config" ON ticket_config FOR ALL USING (true);
-CREATE POLICY "Service role full access to moderator_notifications" ON moderator_notifications FOR ALL USING (true);
-CREATE POLICY "Service role full access to ai_interactions" ON ai_interactions FOR ALL USING (true);
-CREATE POLICY "Service role full access to scheduled_automations" ON scheduled_automations FOR ALL USING (true);
+CREATE POLICY "Service role full access to tickets" ON support_tickets FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access to ticket_messages" ON ticket_messages FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access to announcements" ON announcements FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access to ticket_config" ON ticket_config FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access to moderator_notifications" ON moderator_notifications FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access to ai_interactions" ON ai_interactions FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access to scheduled_automations" ON scheduled_automations FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- Views úteis
-CREATE OR REPLACE VIEW ticket_stats AS
-SELECT 
+CREATE OR REPLACE VIEW ticket_stats WITH (security_invoker = true) AS
+SELECT
     guild_id,
     COUNT(*) FILTER (WHERE status = 'open') as open_tickets,
     COUNT(*) FILTER (WHERE status = 'claimed') as claimed_tickets,

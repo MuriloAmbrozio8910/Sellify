@@ -55,3 +55,7 @@ COMMENT ON COLUMN customizations.customization_data IS 'Dados JSON da customiza√
   }
 }
 */
+
+ALTER TABLE public.customizations ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.customizations FROM anon, authenticated;
+GRANT ALL ON public.customizations TO service_role;

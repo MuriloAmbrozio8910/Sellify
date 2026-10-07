@@ -4,11 +4,6 @@ import { useEffect, useState } from 'react'
 import { Package, DollarSign, Users, ShoppingCart, TrendingUp, Activity } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_KEY!
-)
-
 interface Stats {
   totalProducts: number
   totalSales: number
@@ -31,6 +26,10 @@ export default function Dashboard() {
 
   async function loadStats() {
     try {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_KEY;
+      if (!url || !key) return;
+      const supabase = createClient(url, key);
       // Buscar produtos
       const { data: products } = await supabase
         .from('products')
@@ -65,7 +64,7 @@ export default function Dashboard() {
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-discord-blurple to-discord-fuchsia bg-clip-text text-transparent">
             Discord Sales Bot Dashboard
           </h1>
-          <p className="text-gray-400">Gerencie suas vendas e produtos</p>
+          <p className="text-gray-400">Painel experimental para um banco de demonstração</p>
         </div>
 
         {/* Stats Cards */}
@@ -117,7 +116,7 @@ export default function Dashboard() {
             description="Funcionalidades disponíveis:"
             items={[
               'Gerenciamento de produtos',
-              'Estatísticas em tempo real',
+              'Resumo carregado ao abrir a página',
               'Histórico de transações',
               'Sistema de cupons de desconto',
               'Logs de atividades'
@@ -151,13 +150,13 @@ export default function Dashboard() {
   )
 }
 
-function StatCard({ 
-  title, 
-  value, 
-  icon, 
-  color, 
-  loading 
-}: { 
+function StatCard({
+  title,
+  value,
+  icon,
+  color,
+  loading
+}: {
   title: string
   value: number | string
   icon: React.ReactNode
@@ -179,11 +178,11 @@ function StatCard({
   )
 }
 
-function InfoCard({ 
-  title, 
-  description, 
-  items 
-}: { 
+function InfoCard({
+  title,
+  description,
+  items
+}: {
   title: string
   description: string
   items: string[]
@@ -204,11 +203,11 @@ function InfoCard({
   )
 }
 
-function QuickLink({ 
-  title, 
-  description, 
-  href 
-}: { 
+function QuickLink({
+  title,
+  description,
+  href
+}: {
   title: string
   description: string
   href: string

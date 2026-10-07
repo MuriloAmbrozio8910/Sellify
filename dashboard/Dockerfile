@@ -22,11 +22,10 @@ WORKDIR /app
 
 # Copiar dependências de produção
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copiar build
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.js ./
 
 # Expor porta

@@ -1,9 +1,4 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+module.exports = {
   reactStrictMode: true,
-  images: {
-    domains: ['cdn.discordapp.com', 'i.imgur.com'],
-  },
-}
-
-module.exports = nextConfig
+  turbopack: { root: __dirname },
+};

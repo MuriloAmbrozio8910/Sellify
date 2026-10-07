@@ -22,7 +22,10 @@ import {
 
 // Inicializar cliente Supabase
 const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY!;
+const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_KEY;
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Configure SUPABASE_URL and a server-only SUPABASE_SECRET_KEY or SUPABASE_SERVICE_KEY.');
+}
 
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
 
@@ -198,12 +201,12 @@ export async function deleteProduct(productId: string): Promise<void> {
 export async function decrementStock(productId: string): Promise<Product> {
   const product = await getProductById(productId);
   if (!product) throw new Error('Produto não encontrado');
-  
+
   if (product.stock !== null && product.stock !== undefined) {
     if (product.stock <= 0) throw new Error('Produto sem estoque');
     return await updateProduct(productId, { stock: product.stock - 1 });
   }
-  
+
   return product;
 }
 

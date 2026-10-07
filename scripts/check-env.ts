@@ -15,7 +15,7 @@ const envChecks: EnvCheck[] = [
   { name: 'DISCORD_TOKEN', required: true, description: 'Token do bot Discord' },
   { name: 'DISCORD_CLIENT_ID', required: true, description: 'Client ID do Discord' },
   { name: 'SUPABASE_URL', required: true, description: 'URL do projeto Supabase' },
-  { name: 'SUPABASE_KEY', required: true, description: 'Chave anon do Supabase' },
+  { name: 'SUPABASE_SECRET_KEY', required: false, description: 'Chave secreta do servidor Supabase' },
   { name: 'SUPABASE_SERVICE_KEY', required: false, description: 'Service role key do Supabase' },
   { name: 'STRIPE_SECRET_KEY', required: false, description: 'Chave secreta do Stripe' },
   { name: 'STRIPE_WEBHOOK_SECRET', required: false, description: 'Secret do webhook Stripe' },
@@ -27,7 +27,8 @@ const envChecks: EnvCheck[] = [
 function checkEnv() {
   console.log('🔍 Verificando variáveis de ambiente...\n');
 
-  let hasErrors = false;
+  let hasErrors = !Boolean(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_KEY);
+  if (hasErrors) console.log('Configure SUPABASE_SECRET_KEY ou SUPABASE_SERVICE_KEY (somente servidor).');
   let hasWarnings = false;
 
   for (const check of envChecks) {

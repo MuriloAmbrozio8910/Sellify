@@ -166,7 +166,7 @@ CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions
 CREATE TRIGGER update_payment_credentials_updated_at BEFORE UPDATE ON payment_credentials
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Políticas RLS (Row Level Security) - Opcional, mas recomendado
+-- RLS obrigatório: o bot acessa estas tabelas apenas pelo servidor.
 ALTER TABLE guild_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
@@ -178,34 +178,34 @@ ALTER TABLE payment_credentials ENABLE ROW LEVEL SECURITY;
 
 -- Políticas para service_role (acesso total)
 CREATE POLICY "Service role has full access to guild_configs" ON guild_configs
-    FOR ALL USING (true);
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 CREATE POLICY "Service role has full access to products" ON products
-    FOR ALL USING (true);
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 CREATE POLICY "Service role has full access to transactions" ON transactions
-    FOR ALL USING (true);
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 CREATE POLICY "Service role has full access to coupons" ON coupons
-    FOR ALL USING (true);
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 CREATE POLICY "Service role has full access to product_feedbacks" ON product_feedbacks
-    FOR ALL USING (true);
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 CREATE POLICY "Service role has full access to access_logs" ON access_logs
-    FOR ALL USING (true);
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 CREATE POLICY "Service role has full access to temporary_roles" ON temporary_roles
-    FOR ALL USING (true);
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 CREATE POLICY "Service role has full access to payment_credentials" ON payment_credentials
-    FOR ALL USING (true);
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- Views úteis
 
 -- View de estatísticas de produtos
-CREATE OR REPLACE VIEW product_stats AS
-SELECT 
+CREATE OR REPLACE VIEW product_stats WITH (security_invoker = true) AS
+SELECT
     p.id,
     p.name,
     p.guild_id,
@@ -219,8 +219,8 @@ LEFT JOIN product_feedbacks f ON p.id = f.product_id
 GROUP BY p.id, p.name, p.guild_id;
 
 -- View de estatísticas de servidor
-CREATE OR REPLACE VIEW guild_stats AS
-SELECT 
+CREATE OR REPLACE VIEW guild_stats WITH (security_invoker = true) AS
+SELECT
     p.guild_id,
     COUNT(DISTINCT p.id) FILTER (WHERE p.is_active = true) as active_products,
     COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'completed') as total_transactions,
